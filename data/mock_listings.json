@@ -1,0 +1,103 @@
+{
+  "_note": "Fixture to exercise the pipeline without eBay keys. Targets are auctions to value; comps are active listings matched strictly by card identity. Covers: two alerts (A, F), thin comps (B), scattered comps (C), over price cap / floor (D), no comps (E).",
+  "targets": [
+    {
+      "listing_id": "A1",
+      "card": {"player": "Erling Haaland", "set_name": "Topps Chrome", "variant": "base", "grader": "PSA", "grade": 10},
+      "price": 22.0,
+      "is_auction": true,
+      "ends_at": "2026-06-16T20:00:00Z",
+      "url": "https://www.ebay.co.uk/itm/A1"
+    },
+    {
+      "listing_id": "F1",
+      "card": {"player": "Jude Bellingham", "set_name": "Prizm", "variant": "base", "grader": "PSA", "grade": 9},
+      "price": 18.0,
+      "is_auction": true,
+      "ends_at": "2026-06-16T19:30:00Z",
+      "url": "https://www.ebay.co.uk/itm/F1"
+    },
+    {
+      "listing_id": "B1",
+      "card": {"player": "Vinicius Junior", "set_name": "Select", "variant": "base", "grader": "BGS", "grade": 9.5},
+      "price": 20.0,
+      "is_auction": true,
+      "ends_at": "2026-06-16T21:00:00Z",
+      "url": "https://www.ebay.co.uk/itm/B1"
+    },
+    {
+      "listing_id": "C1",
+      "card": {"player": "Bukayo Saka", "set_name": "Mosaic", "variant": "base", "grader": "PSA", "grade": 10},
+      "price": 30.0,
+      "is_auction": true,
+      "ends_at": "2026-06-16T22:00:00Z",
+      "url": "https://www.ebay.co.uk/itm/C1"
+    },
+    {
+      "listing_id": "D1",
+      "card": {"player": "Phil Foden", "set_name": "Prizm", "variant": "silver", "grader": "PSA", "grade": 10},
+      "price": 60.0,
+      "is_auction": true,
+      "ends_at": "2026-06-16T23:00:00Z",
+      "url": "https://www.ebay.co.uk/itm/D1"
+    },
+    {
+      "listing_id": "E1",
+      "card": {"player": "Jamal Musiala", "set_name": "Optic", "variant": "base", "grader": "SGC", "grade": 10},
+      "price": 25.0,
+      "is_auction": true,
+      "ends_at": "2026-06-16T18:30:00Z",
+      "url": "https://www.ebay.co.uk/itm/E1"
+    }
+  ],
+  "comps": [
+    {"listing_id": "A-c1", "card": {"player": "Erling Haaland", "set_name": "Topps Chrome", "variant": "base", "grader": "PSA", "grade": 10}, "price": 89.0},
+    {"listing_id": "A-c2", "card": {"player": "Erling Haaland", "set_name": "Topps Chrome", "variant": "base", "grader": "PSA", "grade": 10}, "price": 92.0},
+    {"listing_id": "A-c3", "card": {"player": "Erling Haaland", "set_name": "Topps Chrome", "variant": "base", "grader": "PSA", "grade": 10}, "price": 93.0},
+    {"listing_id": "A-c4", "card": {"player": "Erling Haaland", "set_name": "Topps Chrome", "variant": "base", "grader": "PSA", "grade": 10}, "price": 94.0},
+    {"listing_id": "A-c5", "card": {"player": "Erling Haaland", "set_name": "Topps Chrome", "variant": "base", "grader": "PSA", "grade": 10}, "price": 95.0},
+    {"listing_id": "A-c6", "card": {"player": "Erling Haaland", "set_name": "Topps Chrome", "variant": "base", "grader": "PSA", "grade": 10}, "price": 95.0},
+    {"listing_id": "A-c7", "card": {"player": "Erling Haaland", "set_name": "Topps Chrome", "variant": "base", "grader": "PSA", "grade": 10}, "price": 95.0},
+    {"listing_id": "A-c8", "card": {"player": "Erling Haaland", "set_name": "Topps Chrome", "variant": "base", "grader": "PSA", "grade": 10}, "price": 96.0},
+    {"listing_id": "A-c9", "card": {"player": "Erling Haaland", "set_name": "Topps Chrome", "variant": "base", "grader": "PSA", "grade": 10}, "price": 97.0},
+    {"listing_id": "A-c10", "card": {"player": "Erling Haaland", "set_name": "Topps Chrome", "variant": "base", "grader": "PSA", "grade": 10}, "price": 98.0},
+    {"listing_id": "A-c11", "card": {"player": "Erling Haaland", "set_name": "Topps Chrome", "variant": "base", "grader": "PSA", "grade": 10}, "price": 99.0},
+
+    {"listing_id": "F-c1", "card": {"player": "Jude Bellingham", "set_name": "Prizm", "variant": "base", "grader": "PSA", "grade": 9}, "price": 66.0},
+    {"listing_id": "F-c2", "card": {"player": "Jude Bellingham", "set_name": "Prizm", "variant": "base", "grader": "PSA", "grade": 9}, "price": 68.0},
+    {"listing_id": "F-c3", "card": {"player": "Jude Bellingham", "set_name": "Prizm", "variant": "base", "grader": "PSA", "grade": 9}, "price": 69.0},
+    {"listing_id": "F-c4", "card": {"player": "Jude Bellingham", "set_name": "Prizm", "variant": "base", "grader": "PSA", "grade": 9}, "price": 70.0},
+    {"listing_id": "F-c5", "card": {"player": "Jude Bellingham", "set_name": "Prizm", "variant": "base", "grader": "PSA", "grade": 9}, "price": 70.0},
+    {"listing_id": "F-c6", "card": {"player": "Jude Bellingham", "set_name": "Prizm", "variant": "base", "grader": "PSA", "grade": 9}, "price": 71.0},
+    {"listing_id": "F-c7", "card": {"player": "Jude Bellingham", "set_name": "Prizm", "variant": "base", "grader": "PSA", "grade": 9}, "price": 72.0},
+    {"listing_id": "F-c8", "card": {"player": "Jude Bellingham", "set_name": "Prizm", "variant": "base", "grader": "PSA", "grade": 9}, "price": 73.0},
+    {"listing_id": "F-c9", "card": {"player": "Jude Bellingham", "set_name": "Prizm", "variant": "base", "grader": "PSA", "grade": 9}, "price": 74.0},
+
+    {"listing_id": "B-c1", "card": {"player": "Vinicius Junior", "set_name": "Select", "variant": "base", "grader": "BGS", "grade": 9.5}, "price": 60.0},
+    {"listing_id": "B-c2", "card": {"player": "Vinicius Junior", "set_name": "Select", "variant": "base", "grader": "BGS", "grade": 9.5}, "price": 62.0},
+    {"listing_id": "B-c3", "card": {"player": "Vinicius Junior", "set_name": "Select", "variant": "base", "grader": "BGS", "grade": 9.5}, "price": 64.0},
+    {"listing_id": "B-c4", "card": {"player": "Vinicius Junior", "set_name": "Select", "variant": "base", "grader": "BGS", "grade": 9.5}, "price": 66.0},
+    {"listing_id": "B-c5", "card": {"player": "Vinicius Junior", "set_name": "Select", "variant": "base", "grader": "BGS", "grade": 9.5}, "price": 68.0},
+
+    {"listing_id": "C-c1", "card": {"player": "Bukayo Saka", "set_name": "Mosaic", "variant": "base", "grader": "PSA", "grade": 10}, "price": 20.0},
+    {"listing_id": "C-c2", "card": {"player": "Bukayo Saka", "set_name": "Mosaic", "variant": "base", "grader": "PSA", "grade": 10}, "price": 35.0},
+    {"listing_id": "C-c3", "card": {"player": "Bukayo Saka", "set_name": "Mosaic", "variant": "base", "grader": "PSA", "grade": 10}, "price": 55.0},
+    {"listing_id": "C-c4", "card": {"player": "Bukayo Saka", "set_name": "Mosaic", "variant": "base", "grader": "PSA", "grade": 10}, "price": 80.0},
+    {"listing_id": "C-c5", "card": {"player": "Bukayo Saka", "set_name": "Mosaic", "variant": "base", "grader": "PSA", "grade": 10}, "price": 110.0},
+    {"listing_id": "C-c6", "card": {"player": "Bukayo Saka", "set_name": "Mosaic", "variant": "base", "grader": "PSA", "grade": 10}, "price": 145.0},
+    {"listing_id": "C-c7", "card": {"player": "Bukayo Saka", "set_name": "Mosaic", "variant": "base", "grader": "PSA", "grade": 10}, "price": 185.0},
+    {"listing_id": "C-c8", "card": {"player": "Bukayo Saka", "set_name": "Mosaic", "variant": "base", "grader": "PSA", "grade": 10}, "price": 230.0},
+    {"listing_id": "C-c9", "card": {"player": "Bukayo Saka", "set_name": "Mosaic", "variant": "base", "grader": "PSA", "grade": 10}, "price": 280.0},
+
+    {"listing_id": "D-c1", "card": {"player": "Phil Foden", "set_name": "Prizm", "variant": "silver", "grader": "PSA", "grade": 10}, "price": 76.0},
+    {"listing_id": "D-c2", "card": {"player": "Phil Foden", "set_name": "Prizm", "variant": "silver", "grader": "PSA", "grade": 10}, "price": 78.0},
+    {"listing_id": "D-c3", "card": {"player": "Phil Foden", "set_name": "Prizm", "variant": "silver", "grader": "PSA", "grade": 10}, "price": 79.0},
+    {"listing_id": "D-c4", "card": {"player": "Phil Foden", "set_name": "Prizm", "variant": "silver", "grader": "PSA", "grade": 10}, "price": 80.0},
+    {"listing_id": "D-c5", "card": {"player": "Phil Foden", "set_name": "Prizm", "variant": "silver", "grader": "PSA", "grade": 10}, "price": 80.0},
+    {"listing_id": "D-c6", "card": {"player": "Phil Foden", "set_name": "Prizm", "variant": "silver", "grader": "PSA", "grade": 10}, "price": 81.0},
+    {"listing_id": "D-c7", "card": {"player": "Phil Foden", "set_name": "Prizm", "variant": "silver", "grader": "PSA", "grade": 10}, "price": 82.0},
+    {"listing_id": "D-c8", "card": {"player": "Phil Foden", "set_name": "Prizm", "variant": "silver", "grader": "PSA", "grade": 10}, "price": 83.0},
+    {"listing_id": "D-c9", "card": {"player": "Phil Foden", "set_name": "Prizm", "variant": "silver", "grader": "PSA", "grade": 10}, "price": 84.0},
+    {"listing_id": "D-c10", "card": {"player": "Phil Foden", "set_name": "Prizm", "variant": "silver", "grader": "PSA", "grade": 10}, "price": 85.0}
+  ]
+}

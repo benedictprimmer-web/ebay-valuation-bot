@@ -1,0 +1,112 @@
+# valbot config — every tunable in one place.
+# Placeholders per CONTEXT.md / ADRs. Calibrate from logged outcomes, don't trust blind.
+# Rates confirmed against eBay UK live calculator on 2026-06-16 (see README "Fee model").
+
+category: "graded-sports-cards"
+
+# ---- Valuation (ADR-001, build handoff) -------------------------------------
+valuation:
+  # Seed by hand from a few real sold-vs-asking observations; refine from outcomes.
+  # 0.85 = sold prices land ~15% under asking on average. Per category.
+  sold_to_asking_ratio: 0.85
+  spread_method: "mad" # "mad" or "iqr"
+  k: 1.0 # conservative_value = point_value - k * dispersion
+  # confidence shaping
+  n_full_confidence: 15 # comp count at which the n-factor saturates to 1.0
+  rel_dispersion_zero_conf: 0.50 # rel dispersion at which the spread-factor hits 0
+  confidence_high: 0.66
+  confidence_medium: 0.33
+
+# ---- Confidence gate (ADR-008) ----------------------------------------------
+gate:
+  min_comps: 8
+  max_rel_dispersion: 0.35 # drop scattered comps (spread / point_value)
+
+# ---- Fees, all-in conservative (ADR-005) ------------------------------------
+# Itemised on purpose: you can see which cost eats the margin and swap a single
+# rate when eBay changes it, without touching the logic.
+fees:
+  # Your selling account type. UK private sellers pay £0 final value fees (since
+  # Oct 2024) — that's you today, so it's the default. Switch to "business" if eBay
+  # or HMRC reclassify you once resale volume looks like trading.
+  seller_type: "private" # "private" or "business"
+  # Sell-side rates below ONLY apply when seller_type is "business".
+  sell_fvf_pct: 0.128 # 12.8% final value fee
+  sell_fixed: 0.40 # per-order fixed fee (orders > £10, from Feb 2026)
+  sell_regulatory_pct: 0.0035 # 0.35% regulatory operating fee
+  vat_on_fees_pct: 0.20 # 20% VAT on eBay fees; set 0 if VAT-registered (reclaimable)
+  # Buy side — buyer-protection fee, tiered, charged on the purchase.
+  # Conservative: assumed to apply. Set apply_buyer_protection false to drop it.
+  apply_buyer_protection: true
+  buyer_protection_tiers: # [upper_bound_gbp, rate]; last tier applies above prior bound
+    - [20, 0.07]
+    - [300, 0.04]
+    - [4000, 0.02]
+  buyer_protection_fixed: 0.10
+  # Postage both ways, flat estimates for a slab (tracked, small parcel).
+  postage_in: 3.50
+  postage_out: 3.50
+
+# ---- Floors and ranking (ADR-004) -------------------------------------------
+thresholds:
+  margin_floor: 0.25 # expected_profit / conservative_value
+  profit_floor: 15.0 # GBP absolute
+  price_cap: 50.0 # v1 risk control on item price, NOT a ranking input
+
+# ---- Data source ------------------------------------------------------------
+# Default route: third-party RapidAPI (no eBay developer account, real sold comps).
+# Field paths below differ by provider — confirm them once against your provider's
+# sample response. The official Browse API stays available as a free fallback
+# (run.py --mode browse). See README "Where the data comes from".
+thirdparty:
+  # Default auth (RapidAPI) — used by any endpoint that doesn't set its own `auth`.
+  api_host: "real-time-ebay-data1.p.rapidapi.com"
+  auth: {scheme: "rapidapi", secret: "RAPIDAPI_KEY"}
+
+  # LIVE: active auctions ending soon -> targets to bid on.
+  # OpenWeb Ninja "Real-Time eBay Data" via RapidAPI. Field paths from their published
+  # sample; confirm against a real response at first `thirdparty` smoke test. Querying
+  # ebay.co.uk -> prices already in GBP.
+  live:
+    url: "https://real-time-ebay-data1.p.rapidapi.com/search"
+    query_param: "query"
+    extra_params: {country: "gb", buying_format: "auction", sort_by: "ending_soonest"}
+    items_path: "data"
+    fields: {title: "title", price: "price", id: "item_id", url: "url", ends_at: "time_left"}
+    currency: "GBP"
+
+  # SOLD: real sold prices -> comps to value against.
+  # The Card API (thecardapi.com) — trading-card native, true sold prices incl. accepted
+  # Best Offer. Own key via x-market-api-key header. Prices are USD -> converted to GBP
+  # at ingestion using fx.usd_to_gbp. Confirmed against their published response schema.
+  sold:
+    url: "https://thecardapi.com/api/v1/market/sales"
+    auth: {scheme: "header", header: "x-market-api-key", secret: "CARDAPI_KEY"}
+    query_param: "q"
+    extra_params: {limit: 200, sort: "date_desc"}
+    items_path: "data"
+    fields: {title: "title", price: "price", id: "id", url: "listing_url"}
+    currency: "USD"
+
+# ---- FX ---------------------------------------------------------------------
+# The Card API returns USD; the bot reasons in GBP. Placeholder rate — calibrate from
+# outcomes, or wire a live rate later. Caveat: US sold comps are not the same as UK
+# resale value. Watch this in the read-only week before trusting the conversion.
+fx:
+  usd_to_gbp: 0.79
+
+# ---- Poll / search (ADR-006) ------------------------------------------------
+search:
+  ending_within_hours: 6 # only value auctions ending in this window
+  marketplace: "EBAY_GB"
+  max_results_per_query: 50
+  # Search terms that seed the target auctions to value. Tune freely.
+  queries:
+    - "PSA 10 panini prizm"
+    - "BGS 9.5 topps chrome"
+    - "PSA 9 football card"
+
+# ---- Alerting (ADR-007) -----------------------------------------------------
+alert:
+  max_per_run: 10 # don't spam if a flood passes the gate
+  dedupe: true # skip listings already alerted (state file)

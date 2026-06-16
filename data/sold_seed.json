@@ -1,0 +1,9 @@
+{
+  "_note": "Hand-recorded sold-vs-asking observations to seed the calibration ratio (ADR-001). Record a few real solds against the asking median at the time. ratio = sold / asking_median. The per-category ratio in config.yaml should track the median of these. Replace these placeholder rows with real observations before going live.",
+  "category": "graded-sports-cards",
+  "observations": [
+    {"card": "Erling Haaland Topps Chrome PSA 10", "asking_median": 95.0, "sold_price": 81.0, "ratio": 0.85, "date": "2026-06-10"},
+    {"card": "Jude Bellingham Prizm PSA 9", "asking_median": 70.0, "sold_price": 60.0, "ratio": 0.86, "date": "2026-06-11"},
+    {"card": "Phil Foden Prizm Silver PSA 10", "asking_median": 80.0, "sold_price": 67.0, "ratio": 0.84, "date": "2026-06-12"}
+  ]
+}

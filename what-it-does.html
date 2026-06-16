@@ -1,0 +1,284 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>eBay Valuation Bot — what it does</title>
+<style>
+  :root{
+    --ink:#11181c; --muted:#5b6b73; --line:#e3e8ea; --bg:#f6f8f9; --card:#fff;
+    --accent:#1f7a5a; --accent-soft:#e6f3ee; --warn:#b4530a; --warn-soft:#fdf0e4;
+    --bad:#b42318; --bad-soft:#fdecea; --shadow:0 1px 2px rgba(16,24,28,.06),0 4px 18px rgba(16,24,28,.05);
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);
+    font:16px/1.55 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    -webkit-font-smoothing:antialiased}
+  .wrap{max-width:960px;margin:0 auto;padding:40px 24px 80px}
+  h1{font-size:30px;line-height:1.15;margin:0 0 6px;letter-spacing:-.02em}
+  h2{font-size:20px;margin:48px 0 14px;letter-spacing:-.01em}
+  p{margin:0 0 14px}
+  .sub{color:var(--muted);font-size:17px;margin-bottom:18px}
+  .chips{display:flex;gap:8px;flex-wrap:wrap;margin:14px 0 0}
+  .chip{font-size:12.5px;font-weight:600;padding:5px 11px;border-radius:999px;background:var(--accent-soft);color:var(--accent)}
+  .chip.grey{background:#eceff1;color:var(--muted)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px;box-shadow:var(--shadow)}
+  .muted{color:var(--muted)}
+  .small{font-size:14px}
+  code{background:#eef2f3;padding:1px 6px;border-radius:5px;font-size:13.5px;
+    font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+
+  /* pipeline */
+  .flow{display:flex;flex-wrap:wrap;gap:8px;align-items:stretch}
+  .step{flex:1 1 110px;background:var(--card);border:1px solid var(--line);border-radius:11px;padding:12px 12px 13px;position:relative}
+  .step .n{font-size:11px;font-weight:700;color:var(--accent);background:var(--accent-soft);width:22px;height:22px;border-radius:6px;display:flex;align-items:center;justify-content:center;margin-bottom:8px}
+  .step b{font-size:14px}
+  .step span{display:block;color:var(--muted);font-size:12.5px;margin-top:3px}
+
+  /* worked example */
+  .ex{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+  @media(max-width:720px){.ex{grid-template-columns:1fr}.flow .step{flex-basis:140px}}
+  .dist{display:flex;flex-direction:column;gap:10px}
+  .bar{position:relative;height:46px;background:#f1f4f5;border-radius:9px;overflow:hidden;border:1px solid var(--line)}
+  .bar .fill{position:absolute;top:0;bottom:0;left:0;background:linear-gradient(90deg,#cdeadd,#8fd3ba)}
+  .bar .mark{position:absolute;top:0;bottom:0;width:2px;background:var(--ink)}
+  .bar .lbl{position:absolute;top:6px;font-size:11px;font-weight:700;transform:translateX(-50%)}
+  .kv{display:flex;justify-content:space-between;padding:7px 0;border-bottom:1px dashed var(--line);font-size:14.5px}
+  .kv:last-child{border-bottom:0}
+  .kv b{font-variant-numeric:tabular-nums}
+  .big{font-size:30px;font-weight:700;letter-spacing:-.02em;font-variant-numeric:tabular-nums}
+  .verdict{margin-top:12px;padding:10px 13px;border-radius:9px;font-weight:600;font-size:14.5px}
+  .verdict.go{background:var(--accent-soft);color:var(--accent)}
+  .verdict.no{background:var(--bad-soft);color:var(--bad)}
+
+  .controls{display:flex;flex-direction:column;gap:16px;margin-top:4px}
+  .toggle{display:inline-flex;background:#eceff1;border-radius:9px;padding:3px}
+  .toggle button{border:0;background:transparent;padding:7px 14px;border-radius:7px;font-size:13.5px;font-weight:600;color:var(--muted);cursor:pointer}
+  .toggle button.on{background:#fff;color:var(--ink);box-shadow:var(--shadow)}
+  input[type=range]{width:100%;accent-color:var(--accent)}
+  .rowlabel{display:flex;justify-content:space-between;font-size:13.5px;margin-bottom:4px}
+
+  table{width:100%;border-collapse:collapse;font-size:14px}
+  th,td{text-align:left;padding:11px 12px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{font-size:12px;text-transform:uppercase;letter-spacing:.04em;color:var(--muted)}
+  .files td:first-child{font-family:ui-monospace,Menlo,monospace;font-size:13px;white-space:nowrap;color:var(--accent);font-weight:600}
+
+  .opt{display:grid;grid-template-columns:1fr 1fr 1fr;gap:14px}
+  @media(max-width:720px){.opt{grid-template-columns:1fr}}
+  .opt .card{padding:18px}
+  .opt h3{margin:0 0 4px;font-size:16px}
+  .pill{font-size:11px;font-weight:700;padding:3px 9px;border-radius:999px;display:inline-block;margin-bottom:10px}
+  .pill.rec{background:var(--accent-soft);color:var(--accent)}
+  .pill.ok{background:#eef2f3;color:var(--muted)}
+  .pill.risk{background:var(--bad-soft);color:var(--bad)}
+  .opt ul{margin:8px 0 0;padding-left:18px}
+  .opt li{margin:4px 0;font-size:13.5px}
+  .opt li.pro::marker{content:"+ "}
+  .opt li.con::marker{content:"– "}
+  .note{background:var(--warn-soft);border:1px solid #f0d6bd;color:#7a3d08;border-radius:11px;padding:14px 16px;font-size:14.5px}
+  .foot{margin-top:40px;color:var(--muted);font-size:13px}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <h1>eBay Valuation Bot</h1>
+  <div class="sub">What it actually does, in plain terms — and the data-source choice still open.</div>
+  <div class="chips">
+    <span class="chip">Read-only</span>
+    <span class="chip">Never bids</span>
+    <span class="chip">18 tests passing</span>
+    <span class="chip grey">Private-seller fees</span>
+  </div>
+
+  <h2>In one sentence</h2>
+  <div class="card">
+    <p style="margin:0">Every few minutes it looks at graded football-card auctions ending soon, works out what each card is really worth from other listings of the exact same card, subtracts every cost, and if there's a safe profit it WhatsApps you the card and the most you should bid. You place the bid. It never spends a penny on its own.</p>
+  </div>
+
+  <h2>The seven steps</h2>
+  <div class="flow">
+    <div class="step"><div class="n">1</div><b>Poll</b><span>Find auctions ending in the next few hours</span></div>
+    <div class="step"><div class="n">2</div><b>Match</b><span>Pull other listings of the exact same card</span></div>
+    <div class="step"><div class="n">3</div><b>Value</b><span>A price range, not one number</span></div>
+    <div class="step"><div class="n">4</div><b>Gate</b><span>Drop thin or scattered evidence</span></div>
+    <div class="step"><div class="n">5</div><b>Max bid</b><span>Subtract every fee + postage</span></div>
+    <div class="step"><div class="n">6</div><b>Rank</b><span>Best £ profit first</span></div>
+    <div class="step"><div class="n">7</div><b>Alert</b><span>WhatsApp you. You decide</span></div>
+  </div>
+
+  <h2>The clever bit: it values a range, then bids against the cautious end</h2>
+  <div class="card">
+    <p class="muted" style="margin-top:0">A single "worth £80" hides how sure the bot is. So instead it builds a spread from the comps and bids against the <b>low</b> end. Tight, plentiful comps → confident → near-full bid. Few or scattered comps → the number shrinks on its own, or it stays quiet. Uncertainty isn't a warning label, it's baked into the price. Below is a real card from the test run — drag it and flip the fee setting.</p>
+
+    <div class="ex">
+      <div>
+        <div class="small muted" style="margin-bottom:8px"><b>Erling Haaland</b> · Topps Chrome · PSA 10 · from 11 comps</div>
+        <div class="dist">
+          <div class="bar" id="bar">
+            <div class="fill" id="fill"></div>
+            <div class="mark" id="markCons"></div>
+            <div class="mark" id="markPoint" style="background:#1f7a5a"></div>
+            <div class="lbl" id="lblCons" style="color:#11181c">cons.</div>
+            <div class="lbl" id="lblPoint" style="color:#1f7a5a">point</div>
+          </div>
+          <div class="small muted">Point value £80.75 · cautious value £79.05 · spread ±£1.70 (2%) · confidence <b>high (0.70)</b></div>
+        </div>
+        <div style="margin-top:16px">
+          <div class="kv"><span>Cautious value (what we bid against)</span><b>£79.05</b></div>
+          <div class="kv"><span>Sell fee (<span id="stName">private</span>)</span><b id="sellFee">£0.00</b></div>
+          <div class="kv"><span>Buyer-protection fee on your purchase</span><b id="bpf">£1.58</b></div>
+          <div class="kv"><span>Postage in + out</span><b>£7.00</b></div>
+          <div class="kv"><span>Profit you'd keep at this bid</span><b id="profit">£48.47</b></div>
+        </div>
+      </div>
+
+      <div class="controls">
+        <div>
+          <div class="small muted" style="margin-bottom:6px">Your selling account</div>
+          <div class="toggle" id="toggle">
+            <button class="on" data-t="private">Private (you, £0 fees)</button>
+            <button data-t="business">Business</button>
+          </div>
+        </div>
+        <div>
+          <div class="rowlabel"><span>Current auction bid</span><b id="curOut">£22.00</b></div>
+          <input type="range" id="cur" min="5" max="60" step="0.5" value="22">
+        </div>
+        <div class="card" style="padding:16px;text-align:center">
+          <div class="small muted">Most you should bid</div>
+          <div class="big" id="maxbid">£49.60</div>
+          <div class="small muted">margin <b id="margin">61%</b> · floor 25% &amp; £15</div>
+          <div class="verdict go" id="verdict">✓ Alert — underpriced, you've got £27.60 of room</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <h2>"Is valuation.py code?" — yes. Here's every file in English</h2>
+  <div class="card" style="padding:6px 22px">
+    <table class="files">
+      <tr><th>File</th><th>What it does</th></tr>
+      <tr><td>valuation.py</td><td>The clever bit above. Turns comps into a price range + a confidence score, and the cautious value the bot bids against.</td></tr>
+      <tr><td>fees.py</td><td>Every cost between winning and reselling. Now defaults to your £0 private-seller fees, with a business switch. Solves the max bid.</td></tr>
+      <tr><td>threshold.py</td><td>The gatekeeper. Enough comps? Tight enough? Clears the 25% / £15 floors? Under the £50 cap? Builds the verdict per card.</td></tr>
+      <tr><td>ebay_client.py</td><td>Where the listings come from. A mock source (for testing now) and the live eBay one, behind the same plug — so swapping the data source is a small job.</td></tr>
+      <tr><td>alert.py</td><td>Sends the WhatsApp via CallMeBot. One web request.</td></tr>
+      <tr><td>store.py</td><td>Remembers what it already alerted on, and logs every prediction so you can check it against what actually sold.</td></tr>
+      <tr><td>pipeline.py</td><td>Runs the seven steps in order.</td></tr>
+      <tr><td>run.py</td><td>The button. <code>python run.py --mode mock</code> tests it with no keys.</td></tr>
+    </table>
+  </div>
+  <p class="small muted">The <b>18 passing tests</b> run on built-in fake listings, so they prove the maths and the logic without needing eBay keys. The live data feed is the one piece still to wire — that's the choice below.</p>
+
+  <h2>Where the data comes from — the choice that's still open</h2>
+  <p class="muted">The original plan used eBay's official API for <i>active</i> listings (what people are asking). That needs the developer account you found annoying. There are two other routes, and one is genuinely better than what we planned.</p>
+  <div class="opt">
+    <div class="card">
+      <span class="pill ok">Planned</span>
+      <h3>Official eBay API</h3>
+      <div class="small muted">Active listings (asking prices)</div>
+      <ul>
+        <li class="pro">Free, fully allowed</li>
+        <li class="pro">Already built</li>
+        <li class="con">Needs the developer-account approval (slow, can be denied)</li>
+        <li class="con">Asking ≠ sold, so we guess a ratio</li>
+      </ul>
+    </div>
+    <div class="card" style="border-color:#9fd3bf">
+      <span class="pill rec">My recommendation</span>
+      <h3>Third-party API</h3>
+      <div class="small muted">Real sold prices (RapidAPI)</div>
+      <ul>
+        <li class="pro">No eBay developer account at all</li>
+        <li class="pro"><b>Actual sold</b> prices — the true signal, no ratio guess</li>
+        <li class="pro">Live in an hour; a few £/month</li>
+        <li class="con">Small cost + relies on their service staying up</li>
+      </ul>
+    </div>
+    <div class="card">
+      <span class="pill risk">Avoid</span>
+      <h3>Scraping</h3>
+      <div class="small muted">Reading eBay's web pages</div>
+      <ul>
+        <li class="pro">Free, instant, sold data</li>
+        <li class="con">Breaks eBay's rules</li>
+        <li class="con">IP bans / CAPTCHAs</li>
+        <li class="con">Breaks whenever eBay changes its site</li>
+      </ul>
+    </div>
+  </div>
+  <div class="note" style="margin-top:16px">
+    <b>The point Gemini got right:</b> sold prices beat asking prices. A third-party sold-data API gets you that <i>and</i> skips the developer hassle. The whole valuation engine, fees and alerts already work — only this data feed swaps in. The trade-off is a small monthly cost and depending on someone else's service.
+  </div>
+
+  <div class="foot">
+    Read-only v1 · values graded sports cards · alerts only, you confirm every buy · figures above are from the test run, not live eBay.
+  </div>
+</div>
+
+<script>
+  const POINT=80.75, CONS=79.05, CAP=50, MARGIN_FLOOR=0.25, PROFIT_FLOOR=15;
+  const POST_IN=3.5, POST_OUT=3.5;
+  let sellerType="private", cur=22;
+
+  function sellTotal(sale){
+    if(sellerType==="private") return 0;
+    const fvf=sale*0.128+0.40, reg=sale*0.0035, vat=(fvf+reg)*0.20;
+    return fvf+reg+vat;
+  }
+  function bpf(buy){
+    if(buy<=0) return 0;
+    let fee=0.10, lower=0; const tiers=[[20,0.07],[300,0.04],[4000,0.02]];
+    for(const [up,rate] of tiers){ if(buy<=lower) break; fee+=(Math.min(buy,up)-lower)*rate; lower=up; }
+    if(buy>lower) fee+=(buy-lower)*tiers[tiers.length-1][1];
+    return fee;
+  }
+  function profit(buy,sale){ return sale-buy-sellTotal(sale)-bpf(buy)-POST_IN-POST_OUT; }
+  function solveMax(sale,req){
+    if(profit(0,sale)<req) return 0;
+    let lo=0,hi=sale;
+    for(let i=0;i<60;i++){ const m=(lo+hi)/2; if(profit(m,sale)>=req) lo=m; else hi=m; }
+    return lo;
+  }
+  const gbp=x=>"£"+x.toFixed(2);
+
+  function render(){
+    const sale=CONS;
+    const req=Math.max(MARGIN_FLOOR*sale, PROFIT_FLOOR);
+    let maxbid=Math.min(solveMax(sale,req), CAP);
+    const p=profit(cur,sale), margin=p/sale;
+
+    document.getElementById("stName").textContent=sellerType;
+    document.getElementById("sellFee").textContent=gbp(sellTotal(sale));
+    document.getElementById("bpf").textContent=gbp(bpf(cur));
+    document.getElementById("profit").textContent=gbp(p);
+    document.getElementById("curOut").textContent=gbp(cur);
+    document.getElementById("maxbid").textContent=gbp(maxbid);
+    document.getElementById("margin").textContent=Math.round(margin*100)+"%";
+
+    const v=document.getElementById("verdict");
+    const alert = cur<=maxbid && p>=PROFIT_FLOOR && margin>=MARGIN_FLOOR && cur<=CAP;
+    if(alert){ v.className="verdict go"; v.textContent="✓ Alert — underpriced, you've got "+gbp(maxbid-cur)+" of room"; }
+    else { v.className="verdict no"; v.textContent="✗ No alert — current bid is above your max"; }
+
+    // distribution bar: scale 60..100
+    const lo=60,hi=100, pct=x=>((x-lo)/(hi-lo))*100;
+    document.getElementById("fill").style.width=pct(CONS)+"%";
+    document.getElementById("markCons").style.left=pct(CONS)+"%";
+    document.getElementById("markPoint").style.left=pct(POINT)+"%";
+    document.getElementById("lblCons").style.left=pct(CONS)+"%";
+    document.getElementById("lblPoint").style.left=pct(POINT)+"%";
+  }
+
+  document.getElementById("toggle").addEventListener("click",e=>{
+    const b=e.target.closest("button"); if(!b) return;
+    sellerType=b.dataset.t;
+    [...document.querySelectorAll("#toggle button")].forEach(x=>x.classList.toggle("on",x===b));
+    render();
+  });
+  document.getElementById("cur").addEventListener("input",e=>{ cur=parseFloat(e.target.value); render(); });
+  render();
+</script>
+</body>
+</html>
