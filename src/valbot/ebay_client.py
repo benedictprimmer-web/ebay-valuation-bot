@@ -18,6 +18,7 @@ from base64 import b64encode
 from pathlib import Path
 from typing import Protocol
 
+from .camera import camera_listing_from_title
 from .models import Card, Listing
 
 GRADE_RE = re.compile(
@@ -43,7 +44,22 @@ def _card_from_dict(d: dict) -> Card:
     )
 
 
-def _listing_from_dict(d: dict) -> Listing:
+def _listing_from_dict(d: dict) -> Listing | None:
+    """Build a Listing from a fixture entry.
+
+    Two fixture shapes share one source: a structured `card` (slabs), or a freeform
+    `title` parsed to an exact camera/lens model. A camera title that doesn't resolve
+    returns None and is dropped — the mock mirrors the live resolve-or-skip rule.
+    """
+    if "card" not in d and "title" in d:
+        return camera_listing_from_title(
+            title=str(d["title"]),
+            price=float(d["price"]),
+            listing_id=str(d["listing_id"]),
+            url=d.get("url", f"https://www.ebay.co.uk/itm/{d['listing_id']}"),
+            is_auction=bool(d.get("is_auction", False)),
+            ends_at=d.get("ends_at"),
+        )
     return Listing(
         listing_id=str(d["listing_id"]),
         card=_card_from_dict(d["card"]),
@@ -61,8 +77,8 @@ class MockSource:
     def __init__(self, path: str | Path):
         with open(path, "r", encoding="utf-8") as f:
             data = json.load(f)
-        self._targets = [_listing_from_dict(t) for t in data.get("targets", [])]
-        self._comps = [_listing_from_dict(c) for c in data.get("comps", [])]
+        self._targets = [x for x in map(_listing_from_dict, data.get("targets", [])) if x]
+        self._comps = [x for x in map(_listing_from_dict, data.get("comps", [])) if x]
 
     def fetch_targets(self) -> list[Listing]:
         return list(self._targets)
@@ -96,13 +112,24 @@ def listing_from_title(
     tokens: list[str],
     is_auction: bool,
     ends_at: str | None = None,
+    identity: str = "card",
 ) -> Listing | None:
-    """Build a Listing from a freeform title. Strict on grader+grade, tokens must appear.
+    """Build a Listing from a freeform title, by identity mode.
 
-    Identity from a title is approximate in v1 (the same caveat for any source that
-    hands back titles): grader and grade are parsed strictly; player/set/variant come
-    from the query that found the card and must be present in the title.
+    identity="camera" routes to exact body/lens model parsing (resolve-or-skip);
+    `tokens` are ignored there. identity="card" (default) keeps v1 behaviour: grader
+    and grade parsed strictly; player/set/variant come from the query that found the
+    card and must be present in the title.
     """
+    if identity == "camera":
+        return camera_listing_from_title(
+            title=title,
+            price=price,
+            listing_id=listing_id,
+            url=url,
+            is_auction=is_auction,
+            ends_at=ends_at,
+        )
     parsed = parse_grade(title)
     if not parsed:
         return None
@@ -155,6 +182,7 @@ class BrowseAPISource:
         self.cert_id = cert_id
         self.cfg = cfg
         self.search_cfg = cfg["search"]
+        self.identity = cfg.get("identity", "card")
         self._token: str | None = None
         self._token_expiry = 0.0
 
@@ -208,17 +236,28 @@ class BrowseAPISource:
 
     def _to_listing(self, item: dict, query_tokens: list[str]) -> Listing | None:
         title = item.get("title", "")
+        price = item.get("currentBidPrice") or item.get("price") or {}
+        try:
+            value = float(price.get("value"))
+        except (TypeError, ValueError):
+            return None
+        if self.identity == "camera":
+            # Browse returns ACTIVE listings only -> active-listing proxy for cameras
+            # (ADR-011 fallback). Identity is exact-model, resolve-or-skip.
+            return camera_listing_from_title(
+                title=title,
+                price=value,
+                listing_id=str(item.get("itemId")),
+                url=item.get("itemWebUrl", ""),
+                is_auction=bool(item.get("currentBidPrice")),
+                ends_at=item.get("itemEndDate"),
+            )
         parsed = parse_grade(title)
         if not parsed:
             return None
         grader, grade = parsed
         low = title.lower()
         if not all(tok in low for tok in query_tokens):
-            return None
-        price = item.get("currentBidPrice") or item.get("price") or {}
-        try:
-            value = float(price.get("value"))
-        except (TypeError, ValueError):
             return None
         # player/set/variant come from the query that found it; identity is approximate.
         card = Card(
@@ -247,10 +286,19 @@ class BrowseAPISource:
                     out.append(lst)
         return out
 
-    def fetch_comps(self, card: Card) -> list[Listing]:
+    def fetch_comps(self, card) -> list[Listing]:
+        if self.identity == "camera":
+            out: list[Listing] = []
+            for item in self._search(
+                card.label(), extra_filter="buyingOptions:{FIXED_PRICE|AUCTION}"
+            ):
+                lst = self._to_listing(item, [])
+                if lst and lst.card.matches(card):
+                    out.append(lst)
+            return out
         query = f"{card.player} {card.set_name} {card.grader} {card.grade:g}"
         tokens = [t for t in query.lower().split() if not parse_grade(t)]
-        out: list[Listing] = []
+        out = []
         # Comps are active listings of any buying option, not just auctions.
         for item in self._search(query, extra_filter="buyingOptions:{FIXED_PRICE|AUCTION}"):
             lst = self._to_listing(item, tokens)
@@ -281,6 +329,7 @@ class ThirdPartySource:
         self.cfg = cfg
         self.tp = cfg["thirdparty"]
         self.search_cfg = cfg["search"]
+        self.identity = cfg.get("identity", "card")
 
     def _auth_for(self, endpoint: dict) -> dict:
         """Auth config for an endpoint, falling back to the provider default (RapidAPI)."""
@@ -347,6 +396,7 @@ class ThirdPartySource:
                 tokens=tokens,
                 is_auction=is_auction,
                 ends_at=dig(item, f["ends_at"]) if "ends_at" in f else None,
+                identity=self.identity,
             )
             if lst:
                 out.append(lst)
@@ -359,7 +409,12 @@ class ThirdPartySource:
             out.extend(self._parse(items, self.tp["live"], query_tokens(query), True))
         return out
 
-    def fetch_comps(self, card: Card) -> list[Listing]:
+    def fetch_comps(self, card) -> list[Listing]:
+        if self.identity == "camera":
+            query = card.label()
+            items = self._get(self.tp["sold"], query)
+            comps = self._parse(items, self.tp["sold"], [], False)
+            return [c for c in comps if c.card.matches(card)]
         query = f"{card.player} {card.set_name} {card.grader} {card.grade:g}"
         items = self._get(self.tp["sold"], query)
         comps = self._parse(items, self.tp["sold"], query_tokens(query), False)

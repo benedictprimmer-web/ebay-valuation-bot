@@ -19,6 +19,7 @@ import json
 from dataclasses import dataclass
 from pathlib import Path
 
+from .camera import parse_camera
 from .ebay_client import ListingSource
 from .models import Assessment, Card, Listing
 from .threshold import assess
@@ -34,6 +35,10 @@ _ALIASES = {
     "parallel": "variant",
     "grader": "grader",
     "grade": "grade",
+    # cameras: a single freeform title is the identity
+    "title": "title",
+    "model": "title",
+    "item": "title",
     "current_price": "current_price",
     "current": "current_price",
     "price": "current_price",
@@ -73,25 +78,43 @@ def _norm_row(raw: dict) -> dict:
     return out
 
 
+def _price_from_row(row: dict) -> float | None:
+    raw_price = row.get("current_price")
+    if raw_price is None or str(raw_price).strip() == "":
+        return None
+    return float(raw_price)
+
+
 def _card_from_row(row: dict) -> tuple[Card, float | None, str]:
     player = str(row["player"]).strip()
     set_name = str(row.get("set_name", "")).strip()
     variant = str(row.get("variant") or "base").strip() or "base"
     grader = str(row["grader"]).strip().upper()
     grade = float(row["grade"])
-    raw_price = row.get("current_price")
-    price: float | None
-    if raw_price is None or str(raw_price).strip() == "":
-        price = None
-    else:
-        price = float(raw_price)
     card = Card(player=player, set_name=set_name, variant=variant, grader=grader, grade=grade)
-    return card, price, card.label()
+    return card, _price_from_row(row), card.label()
 
 
-def load_watchlist(path: str | Path) -> list[TargetInput]:
-    """Read a watch list from CSV or JSON. Fields: player, set_name, variant,
-    grader, grade, current_price (optional). variant defaults to 'base'."""
+def _camera_from_row(row: dict):
+    """Resolve a watch-list row to an exact camera/lens model. Raises on an ambiguous
+    title so a hand-curated list fails loud rather than valuing the wrong thing."""
+    title = str(row.get("title") or "").strip()
+    if not title:
+        raise ValueError("camera watch-list row needs a 'title' (or 'model'/'item')")
+    item = parse_camera(title)
+    if not item.resolved:
+        raise ValueError(f"could not resolve an exact model from title: {title!r}")
+    return item, _price_from_row(row), item.label()
+
+
+def load_watchlist(path: str | Path, identity: str = "card") -> list[TargetInput]:
+    """Read a watch list from CSV or JSON.
+
+    identity='card'   -> fields: player, set_name, variant, grader, grade, current_price.
+    identity='camera' -> fields: title (or model/item), current_price. The title must
+                         resolve to one exact body/lens or the row is rejected.
+    current_price is optional in both; variant defaults to 'base'.
+    """
     p = Path(path)
     rows: list[dict]
     if p.suffix.lower() == ".json":
@@ -104,13 +127,16 @@ def load_watchlist(path: str | Path) -> list[TargetInput]:
     else:
         raise ValueError(f"watch list must be .csv, .tsv or .json, got {p.suffix!r}")
 
+    required = ("title",) if identity == "camera" else ("player", "grader", "grade")
     out: list[TargetInput] = []
     for i, raw in enumerate(rows, start=1):
         row = _norm_row(raw)
-        missing = [f for f in ("player", "grader", "grade") if not str(row.get(f, "")).strip()]
+        missing = [f for f in required if not str(row.get(f, "")).strip()]
         if missing:
             raise ValueError(f"watch-list row {i} missing required field(s): {', '.join(missing)}")
-        card, price, label = _card_from_row(row)
+        card, price, label = (
+            _camera_from_row(row) if identity == "camera" else _card_from_row(row)
+        )
         out.append(TargetInput(card=card, current_price=price, label=label))
     return out
 

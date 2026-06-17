@@ -8,6 +8,13 @@
 
 category: "graded-sports-cards"
 
+# How a freeform listing title is turned into a comparable identity.
+#   card   = grader + grade parsed strictly, player/set tokens required (slabs).
+#   camera = exact body/lens model via src/valbot/camera.py; resolve-or-skip.
+# Neutral default is card; the cameras sector overrides it. Drives the live sources
+# and the mock/targets paths, so one switch moves the whole lane.
+identity: "card"
+
 # Which sector profile to use when --sector isn't passed.
 active_sector: "graded-cards"
 
@@ -153,8 +160,11 @@ sectors:
     label: "Exact-model cameras & lenses (UK only)"
     overrides:
       category: "cameras-lenses"
+      identity: "camera" # exact body/lens model, not grader+grade
       valuation:
         sold_to_asking_ratio: 1.0 # value on real GBP sold comps
+        # If the sold source falls back to Browse ACTIVE listings (see ADR-011),
+        # drop this toward ~0.85: UK used gear clears under median asking.
       fees:
         seller_type: "business"
         sell_fvf_pct: 0.069 # UK cameras/lenses ~6.9% (confirm)
@@ -168,6 +178,18 @@ sectors:
           - "Sony A7 III body"
           - "Canon RF 50mm f1.8"
           - "Fujifilm X-T4 body"
-      # NOTE: no UK sold-comp source is wired for cameras yet. Browse gives live
-      # auctions (current bid + end time) but eBay sold data is gated. Resolve the
-      # comp source before running this sector live. Identity = exact model number.
+      # SOLD-COMP SOURCE (the open gap — see ADR-011). No clean official UK sold
+      # feed exists; eBay Marketplace Insights stays partner-gated. The endpoint
+      # below is a pluggable scaffold mirroring the cards lane's `thirdparty.sold`.
+      # Pick a provider (Ben's call, it costs), drop its host/paths in, add the key.
+      # GBP-native, country=GB, condition=used. Until then run --mode mock.
+      thirdparty:
+        sold:
+          # PLACEHOLDER — fill after choosing a provider (ADR-011 shortlist).
+          url: "https://CHOSEN_PROVIDER/sold"
+          auth: {scheme: "rapidapi", secret: "RAPIDAPI_KEY"}
+          query_param: "q"
+          extra_params: {country: "gb", condition: "used", sort: "date_desc"}
+          items_path: "data"
+          fields: {title: "title", price: "price", id: "id", url: "url"}
+          currency: "GBP"

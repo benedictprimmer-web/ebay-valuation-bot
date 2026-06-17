@@ -44,7 +44,7 @@ def main() -> int:
     cfg = apply_sector(load_config(args.config), args.sector)
     print(f"Sector: {cfg.get('active_sector')}")
     source = get_source(cfg, args.mode, mock_path=args.mock_data)
-    watchlist = load_watchlist(args.watchlist)
+    watchlist = load_watchlist(args.watchlist, identity=cfg.get("identity", "card"))
 
     results = run_targets(cfg, source, watchlist)
     print(format_targets(results))

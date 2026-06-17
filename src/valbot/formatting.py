@@ -11,7 +11,7 @@ def format_alert(a: Assessment) -> str:
     v = a.valuation
     assert v is not None and a.max_bid is not None
     lines = [
-        "🏷️ Underpriced card",
+        "🏷️ Underpriced listing",
         v.card.label(),
         "",
         f"Current bid: £{a.listing.price:.2f}",

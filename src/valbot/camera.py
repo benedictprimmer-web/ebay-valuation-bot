@@ -16,6 +16,8 @@ from __future__ import annotations
 import re
 from dataclasses import dataclass
 
+from .models import Listing
+
 _BRANDS = {
     "sony": "sony", "canon": "canon", "nikon": "nikon",
     "fujifilm": "fujifilm", "fuji": "fujifilm",
@@ -31,7 +33,7 @@ _ROMAN = {"i": "1", "ii": "2", "iii": "3", "iv": "4", "v": "5", "vi": "6"}
 _MOUNTS = ("rf", "ef-s", "ef", "fe", "z", "x", "l")  # lens mount tokens to keep
 
 _FOCAL = re.compile(r"(\d{1,4})(?:-(\d{1,4}))?\s?mm\b")
-_APERTURE = re.compile(r"f/?\s?(\d{1,2}(?:\.\d+)?)")
+_APERTURE = re.compile(r"(?<![a-z])f/?\s?(\d{1,2}(?:\.\d+)?)")  # lookbehind skips rf/ef
 _MARK = re.compile(r"\b(?:mark|mk)\s*([ivx]+|\d)\b")
 _ROMAN_STANDALONE = re.compile(r"\b(ii|iii|iv|vi)\b")  # multi-char only; Mark V via _MARK
 
@@ -68,7 +70,14 @@ class CameraItem:
         return self.resolved and other.resolved and self.key() == other.key()
 
     def label(self) -> str:
-        return f"{self.brand.title()} {self.model}".strip()
+        # Display only — the key() above stays lowercase-normalised for matching.
+        # Upper-case model codes (a7 -> A7, xt4 -> XT4) but leave focal/aperture
+        # tokens alone (50mm, f1.8) so they read the way listings write them.
+        def tok(t: str) -> str:
+            return t if ("mm" in t or re.match(r"^f[\d.]", t)) else t.upper()
+
+        model = " ".join(tok(t) for t in self.model.split())
+        return f"{self.brand.title()} {model}".strip()
 
 
 def _prep(title: str) -> tuple[str, str]:
@@ -140,3 +149,33 @@ def group_by_model(titles: list[str]) -> dict[str, list[str]]:
         item = parse_camera(t)
         out.setdefault(item.key() if item.resolved else "__manual__", []).append(t)
     return out
+
+
+def camera_listing_from_title(
+    *,
+    title: str,
+    price: float,
+    listing_id: str,
+    url: str,
+    is_auction: bool,
+    ends_at: str | None = None,
+) -> Listing | None:
+    """Build a Listing whose identity is an exact camera/lens model.
+
+    Resolve-or-skip: a title that doesn't pin down a specific body or lens returns
+    None and never reaches valuation — the bot won't bid on a guess (the cameras-lane
+    equivalent of the cards confidence gate). A `CameraItem` rides in `Listing.card`;
+    it exposes the same `key()` / `label()` / `matches()` the pipeline needs, so the
+    whole downstream (value -> gate -> fees -> rank) runs unchanged.
+    """
+    item = parse_camera(title)
+    if not item.resolved:
+        return None
+    return Listing(
+        listing_id=str(listing_id),
+        card=item,  # CameraItem stands in for Card; same identity interface
+        price=price,
+        url=url,
+        is_auction=is_auction,
+        ends_at=ends_at,
+    )
