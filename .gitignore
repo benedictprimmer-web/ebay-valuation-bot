@@ -5,5 +5,4 @@ __pycache__/
 venv/
 .env
 .DS_Store
-ziIP2TLr
-data/state/
+data/targets_results.json

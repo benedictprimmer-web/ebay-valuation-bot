@@ -1,8 +1,15 @@
 # valbot config — every tunable in one place.
 # Placeholders per CONTEXT.md / ADRs. Calibrate from logged outcomes, don't trust blind.
 # Rates confirmed against eBay UK live calculator on 2026-06-16 (see README "Fee model").
+#
+# STRUCTURE: the blocks below are NEUTRAL DEFAULTS. Each real category lives under
+# `sectors` and overrides only what differs for it. Pick one with --sector (or the
+# `active_sector` default). Run `python targets.py --sector cameras-lenses ...`.
 
 category: "graded-sports-cards"
+
+# Which sector profile to use when --sector isn't passed.
+active_sector: "graded-cards"
 
 # ---- Valuation (ADR-001, build handoff) -------------------------------------
 valuation:
@@ -110,3 +117,57 @@ search:
 alert:
   max_per_run: 10 # don't spam if a flood passes the gate
   dedupe: true # skip listings already alerted (state file)
+
+# ---- Sector profiles --------------------------------------------------------
+# Each sector overrides only what differs from the neutral defaults above. Switch
+# with --sector. The corrected, real-world assumptions live HERE, not in the base
+# blocks (the base stays neutral so the test fixtures keep working).
+#
+# Two assumptions were wrong in v1 and are fixed in these profiles:
+#   1. seller_type was "private" (£0 fees). Buying to resell with a third-party tool
+#      is business activity, and eBay only lets BUSINESS sellers use such tools — so
+#      every sector models business fees. (Research, 17 Jun 2026.)
+#   2. sold_to_asking_ratio was 0.85, which suits ASKING-price comps. Our comps are
+#      real SOLD prices, so the ratio sits near 1.0. Calibrate from outcomes.
+# FVF rates below are category-specific starting points — CONFIRM each against eBay
+# UK's live business-seller calculator before trusting the max bid.
+sectors:
+  graded-cards:
+    label: "Graded sports / TCG cards"
+    overrides:
+      category: "graded-sports-cards"
+      valuation:
+        sold_to_asking_ratio: 1.0 # Card API returns sold prices, not asking
+      fees:
+        seller_type: "business"
+        sell_fvf_pct: 0.109 # UK collectables/cards ~10.9% (confirm)
+      fx:
+        usd_to_gbp: 0.79 # Card API is USD. CAVEAT: US sold != UK resale. Prefer GBP comps.
+      search:
+        queries:
+          - "PSA 10 panini prizm"
+          - "BGS 9.5 topps chrome"
+          - "PSA 9 football card"
+
+  cameras-lenses:
+    label: "Exact-model cameras & lenses (UK only)"
+    overrides:
+      category: "cameras-lenses"
+      valuation:
+        sold_to_asking_ratio: 1.0 # value on real GBP sold comps
+      fees:
+        seller_type: "business"
+        sell_fvf_pct: 0.069 # UK cameras/lenses ~6.9% (confirm)
+      fx:
+        usd_to_gbp: 1.0 # UK GBP comps only — no USD conversion, no US sourcing
+      thresholds:
+        price_cap: 600.0 # cameras carry far higher value than the £50 card cap
+        profit_floor: 40.0 # high-margin / low-volume: only chase real spreads
+      search:
+        queries:
+          - "Sony A7 III body"
+          - "Canon RF 50mm f1.8"
+          - "Fujifilm X-T4 body"
+      # NOTE: no UK sold-comp source is wired for cameras yet. Browse gives live
+      # auctions (current bid + end time) but eBay sold data is gated. Resolve the
+      # comp source before running this sector live. Identity = exact model number.

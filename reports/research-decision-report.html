@@ -1,0 +1,165 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  @page { size: A4; margin: 13mm 15mm; }
+  * { box-sizing: border-box; }
+  body { font-family: "Helvetica Neue", Arial, sans-serif; color: #1c1c1a; font-size: 9.8px; line-height: 1.45; margin: 0; }
+  h1 { font-size: 18px; margin: 0 0 2px; letter-spacing: -0.2px; }
+  .meta { color: #7a7873; font-size: 9px; margin-bottom: 8px; }
+  h2 { font-size: 11.5px; margin: 11px 0 4px; color: #4a42a8; }
+  h3 { font-size: 10px; margin: 8px 0 2px; }
+  p { margin: 0 0 5px; }
+  .tldr { background:#1D9E75; color:#fff; border-radius:8px; padding:9px 13px; margin:4px 0 9px; }
+  .tldr b { font-size:11px; } .tldr p { margin:0 0 4px; color:#eafff7; }
+  .tldr p:last-child { margin:0; }
+  .cols { display:flex; gap:15px; }
+  .col { flex:1; }
+  table { width:100%; border-collapse:collapse; margin:4px 0 6px; font-size:8.6px; }
+  th { background:#f1eff8; color:#3c3489; text-align:left; padding:3px 5px; border-bottom:1px solid #ddd9ef; }
+  td { padding:3px 5px; border-bottom:1px solid #ececec; vertical-align:top; }
+  .good { color:#0F6E56; font-weight:700; }
+  .warn { color:#993C1D; font-weight:700; }
+  .pick { background:#f4f3fb; border:1px solid #e0ddf3; border-radius:7px; padding:7px 11px; margin:5px 0; }
+  .foot { color:#8a8881; font-size:8.4px; margin-top:9px; border-top:1px solid #e6e4dd; padding-top:5px; }
+  code { background:#f0eee8; padding:0 3px; border-radius:3px; font-size:8.8px; }
+  ol { margin:3px 0 5px; padding-left:15px; } li { margin-bottom:3px; }
+  .pagebreak { page-break-before: always; }
+</style>
+</head>
+<body>
+  <h1>eBay Valuation Bot — decision report</h1>
+  <div class="meta">All deep research compiled: Grok + two Claude-chat reports · 17 June 2026</div>
+
+  <div class="tldr">
+    <b>Three calls, made.</b>
+    <p>1. Live data: use eBay's official <b>Browse API</b>. It returns current bid, bid count and end time for UK auctions, free up to 5,000 calls/day, no contract. We already built the client.</p>
+    <p>2. What to sell: pivot toward <b>exact-model cameras and lenses</b> as the primary lane; keep graded cards as the clean, lower-capital secondary. Avoid watches, sneakers, fashion, Lego, books.</p>
+    <p>3. Business model: <b>flip yourself</b>. Don't sell alerts — that market is crowded and has no moat. Your valuation engine plus manual bidding is the edge.</p>
+  </div>
+
+  <div class="cols">
+    <div class="col">
+      <h2>1 · The data problem is solved</h2>
+      <p>Both research passes landed on the same place, and the deeper one verified it field
+      by field. The Browse API's <code>item_summary/search</code> returns
+      <code>currentBidPrice</code>, <code>bidCount</code> and <code>itemEndDate</code> for
+      live auctions when you pass <code>filter=buyingOptions:{AUCTION}</code>, with
+      <code>X-EBAY-C-MARKETPLACE-ID: EBAY_GB</code> for the UK. The old "eBay strips auction
+      data" story is out of date.</p>
+      <p>Two things matter for us. The Finding API, which old tutorials used for end times,
+      was switched off on 5 Feb 2025 — anything built on it is dead, and Browse is the
+      replacement. And RapidAPI scrapers still can't be verified to return real UK auction
+      timers, which is exactly why the one you bought failed. So that route stays closed.</p>
+      <p>The lift is small because the code is already written: <code>--mode browse</code>
+      calls that endpoint with that filter and header. What's left is access, not coding.</p>
+
+      <h3>One gap to self-test</h3>
+      <p>Nobody could produce a raw JSON capture of a <i>live ebay.co.uk auction</i> with the
+      bid and end-time fields populated. The docs and eBay staff confirm it; a real capture
+      doesn't exist publicly. So the first thing we do once your keyset is live is pull one
+      real GB auction and check those fields come back filled. Quick test, removes the doubt.</p>
+    </div>
+    <div class="col">
+      <h2>2 · What to sell</h2>
+      <p>The verdict: stop treating this as "a card bot." Value on <b>clean identity</b>, not
+      on a category. Anything with a machine-readable identity and low condition spread suits
+      the engine; anything where condition is the whole story defeats it.</p>
+      <p><b>Cameras and lenses win.</b> Exact model, mount and generation give clean comps;
+      the items are small and dense to store and post; per-flip spreads in recent reseller
+      examples (e.g. £300 in, £550 out) beat the £20–£50 that typical card flips return. UK
+      camera/lens selling fees are also lower (~6.9% vs ~10.9% on collectables).</p>
+      <p><b>Graded cards stay as the clean baseline.</b> Slab cert + fixed grade is the easiest
+      thing to value, and postage is trivial. The catch is a softening 2024–25 card market and
+      a crowded field, so the ceiling per flip is lower. Keep it; don't lead with it.</p>
+
+      <table>
+        <tr><th>Category</th><th>£/flip</th><th>Identity</th><th>Fit</th></tr>
+        <tr><td>Cameras &amp; lenses</td><td>high</td><td class="good">exact model</td><td class="good">best</td></tr>
+        <tr><td>Graded cards / TCG</td><td>mid</td><td class="good">cert + grade</td><td class="good">strong 2nd</td></tr>
+        <tr><td>Sealed TCG product</td><td>thin</td><td class="good">SKU</td><td>opportunistic</td></tr>
+        <tr><td>Phones / GPUs</td><td>mid</td><td class="good">model</td><td class="warn">scam-prone</td></tr>
+        <tr><td>Watches</td><td>high</td><td class="warn">subjective</td><td class="warn">fakes</td></tr>
+        <tr><td>Sneakers / fashion</td><td>mid</td><td class="warn">condition</td><td class="warn">avoid first</td></tr>
+        <tr><td>Lego / books / vinyl</td><td>low</td><td>mixed</td><td class="warn">bulk / slow</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <h2>3 · The bad-listing angle — real, but narrower than the folklore</h2>
+  <p>Your instinct is right, with a sharpening. Underpriced listings do exist and people still
+  profit from them, but the broad "bad photo equals free money" edge has shrunk: buyers and
+  pickers now run Google Lens constantly, and eBay search handles misspellings better than it
+  used to. The edge that survives is specific — a seller who <b>failed to expose the identity
+  signal that sets the price</b>: a model suffix buried in a photo, a slab cert left out of the
+  title, a lens mount or version omitted, a misspelled player or set, value hidden inside a
+  vague bundle. That maps onto your tooling far better than messy one-off antiques do, and it's
+  exactly where cameras shine (sloppy listings there usually mean a missing model detail, not
+  total ambiguity). The design consequence is firm: <b>value automatically only when the listing
+  resolves to a specific identity; everything else goes to manual review, not a confident bid.</b>
+  We already have that gate — it's the confidence check — so the angle is a tuning job, not a rebuild.</p>
+
+  <div class="foot">Page 1 of 2 · Sources saved alongside: <code>RESEARCH-results-grok.md</code>, <code>RESEARCH-results-claude-chat.md</code>, plus the two pasted Claude reports.</div>
+
+  <!-- ===================== PAGE 2 ===================== -->
+  <div class="pagebreak"></div>
+
+  <h2>4 · Model assumptions audit — every dial, checked</h2>
+  <p>You asked to look at every assumption in the model. Here's the lot, with what changed.
+  The fixes are now built into the sector profiles in <code>config.yaml</code> (run with
+  <code>--sector</code>); the base config stays neutral so the tests still hold.</p>
+  <table>
+    <tr><th>Assumption</th><th>Was</th><th>Now / verdict</th></tr>
+    <tr><td>Seller type</td><td>private (£0 sell fees)</td><td class="good">business — buying to resell with a third-party tool is business activity, and eBay only lets business sellers use such tools. Fixed in every sector.</td></tr>
+    <tr><td>Final value fee</td><td>12.8% flat</td><td>category-specific: cards ~10.9%, cameras ~6.9%. <span class="warn">Confirm each on eBay's live calculator.</span></td></tr>
+    <tr><td>Sold-to-asking ratio</td><td>0.85</td><td class="good">1.0 — our comps are real sold prices, not asking. Calibrate from outcomes.</td></tr>
+    <tr><td>USD→GBP rate</td><td>0.79, applied to all</td><td>cards still USD via Card API (caveat: US sold ≠ UK resale); cameras GBP-only (1.0), no US sourcing.</td></tr>
+    <tr><td>Comp source</td><td>Card API (US, cards only)</td><td class="warn">fine for cards; no UK sold-comp source wired for cameras yet — the one real open gap.</td></tr>
+    <tr><td>Min comps gate</td><td>8</td><td>keep. Matches the high-confidence-or-no-bid rule the research backs.</td></tr>
+    <tr><td>Max spread gate</td><td>0.35</td><td>keep; tighten if bad-listing comps come back noisy.</td></tr>
+    <tr><td>Conservatism k</td><td>1.0</td><td>keep for cards; consider raising for electronics (returns/scam risk).</td></tr>
+    <tr><td>Margin floor</td><td>25%</td><td>keep for cards; for cameras the absolute profit floor matters more.</td></tr>
+    <tr><td>Profit floor</td><td>£15</td><td>cameras raised to £40 — high-margin, low-volume means only chasing real spreads.</td></tr>
+    <tr><td>Price cap</td><td>£50</td><td>cards £50; cameras £600 (far higher item value).</td></tr>
+    <tr><td>Title matching</td><td>strict tokens + grade regex</td><td class="warn">works for slabs; cameras need exact-model extraction — to build.</td></tr>
+    <tr><td>Postage</td><td>£3.50 each way</td><td>fine for slabs; cameras are heavier — revisit per item.</td></tr>
+  </table>
+
+  <div class="cols">
+    <div class="col">
+      <h2>5 · Where money actually leaks</h2>
+      <p>The research is consistent on how flippers lose. They anchor to active listings
+      instead of sold ones — our engine already values on sold comps, so we're on the right
+      side of that. They buy stock they only think they can move. And on electronics the
+      losses come from returns, item-swaps and false "not as described" claims more than from
+      bad valuation. On cards, the trap is grading overconfidence: raw-to-graded ties up
+      capital for weeks and often doesn't clear. Our model stays read-only and bids to a
+      fee-adjusted max, which sidesteps most of this. The new risk we take on with cameras is
+      condition and returns, so the process needs testing discipline and a conservative bid.</p>
+    </div>
+    <div class="col">
+      <h2>6 · My view on next steps</h2>
+      <p><b>No new deep-research prompt now.</b> The two reports converge cleanly; another
+      broad sweep would repeat them. The only thing worth a short, targeted look is the one
+      gap above: a reliable <b>UK sold-price source for cameras</b>, since the Card API is
+      US/cards-only and eBay's sold data is gated. We can settle that during the build.</p>
+      <p>On "big mispricing across all sectors" — tempting, but it widens the comp problem
+      instead of narrowing it. Better to nail one clean-identity category first, prove the
+      signal, then clone the profile. Cloning is already a config job.</p>
+    </div>
+  </div>
+
+  <h2>The plan</h2>
+  <ol>
+    <li><b>Now:</b> infrastructure is ready ahead of the key — sector profiles built, business fees fixed, ratio fixed, <code>--mode browse</code> waiting. (Done this session.)</li>
+    <li><b>You:</b> finish eBay developer sign-up; once approved I set up the account-deletion notification step and wire the keyset.</li>
+    <li><b>Then:</b> self-test one live GB auction returns bid + end time; switch the live source to Browse.</li>
+    <li><b>Build the cameras lane:</b> exact-model title matching + a UK sold-comp source. Run the cards lane in parallel as the proven baseline.</li>
+    <li><b>Calibrate:</b> log real won/resold outcomes, then tune the ratio, floors and fees from data instead of guesses.</li>
+    <li><b>Later, only if the signal proves out:</b> consider a small paid alert tier. Not before.</li>
+  </ol>
+
+  <div class="foot">Page 2 of 2 · Fixes live in <code>config.yaml</code> sectors + <code>src/valbot/config.py</code> (<code>apply_sector</code>). 38 tests passing. FVF and ratio values are starting points — confirm and calibrate before trusting the max bid.</div>
+</body>
+</html>

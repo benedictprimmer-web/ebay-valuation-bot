@@ -1,0 +1,99 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  @page { size: A4; margin: 13mm 15mm; }
+  * { box-sizing: border-box; }
+  body { font-family: "Helvetica Neue", Arial, sans-serif; color: #1c1c1a; font-size: 10.2px; line-height: 1.48; margin: 0; }
+  h1 { font-size: 18px; margin: 0 0 2px; letter-spacing: -0.2px; }
+  .meta { color: #7a7873; font-size: 9.3px; margin-bottom: 9px; }
+  h2 { font-size: 11.5px; margin: 12px 0 4px; color: #4a42a8; }
+  p { margin: 0 0 6px; }
+  .banner { background:#1D9E75; color:#fff; border-radius:8px; padding:9px 13px; margin:4px 0 10px; }
+  .banner b { font-size:12.5px; }
+  .banner span { color:#E1F5EE; }
+  .cols { display:flex; gap:16px; }
+  .col { flex:1; }
+  .side { background:#f4f3fb; border:1px solid #e0ddf3; border-radius:8px; padding:9px 12px; margin:6px 0; }
+  .side h3 { margin:0 0 5px; font-size:10.5px; color:#4a42a8; }
+  ol { margin:3px 0 4px; padding-left:16px; }
+  li { margin-bottom:3px; }
+  .foot { color:#8a8881; font-size:8.6px; margin-top:11px; border-top:1px solid #e6e4dd; padding-top:6px; }
+  code { background:#f0eee8; padding:0 3px; border-radius:3px; font-size:9.2px; }
+  .tag { display:inline-block; background:#4a42a8; color:#fff; font-size:8px; font-weight:700; padding:1px 5px; border-radius:4px; }
+</style>
+</head>
+<body>
+  <h1>Research synthesis — what to do next</h1>
+  <div class="meta">eBay Valuation Bot · Grok + Claude-chat results reviewed · 17 June 2026</div>
+
+  <div class="banner"><b>Decision: build against eBay's official Browse API first.</b>
+  <span>Both research passes back it. The deeper Claude run verified, field by field, that Browse returns exactly what we need.</span></div>
+
+  <div class="cols">
+    <div class="col">
+      <h2>What the two passes agreed on</h2>
+      <p>Grok rated managed scrapers (Apify) as the quick practical route and put the
+      official API second because approval can drag. The deeper Claude run went further and
+      checked the docs: Browse's search response returns current bid, bid count, end
+      timestamp, item ID, listing URL and title for auctions, filtered to eBay UK, sorted
+      ending-soonest, free under 5,000 calls a day. That's our whole wishlist from one
+      first-party source. It demotes scrapers to a backup.</p>
+      <p>Neither pass could verify a single RapidAPI provider that reliably returns live
+      auction bid and end time for the UK. That matches the dud I already bought. So that
+      route is dead, confirmed twice.</p>
+
+      <h2>Why this is bigger than it reads</h2>
+      <p>We already built the Browse client. <code>--mode browse</code> exists in the code
+      and calls the exact endpoint, filter and marketplace header the research recommends.
+      The "hard problem" the last four sessions circled is mostly an access form, not a
+      coding job. Remaining work: get the keyset, clear eBay's compliance step, flip the
+      workflow from <code>thirdparty</code> to <code>browse</code>.</p>
+    </div>
+
+    <div class="col">
+      <div class="side">
+        <h3>Securing the keyset (the side piece you asked about)</h3>
+        <ol>
+          <li>Developer account — free, ~1 day. <span class="tag">you've signed up</span></li>
+          <li>Create a production keyset → App ID + Cert ID.</li>
+          <li>Clear the account-deletion notification compliance step. This is the one real
+          hoop: eBay wants an HTTPS endpoint that acknowledges its deletion pings before the
+          keyset goes live. Cheap to stand up.</li>
+          <li>Add <code>EBAY_APP_ID</code> + <code>EBAY_CERT_ID</code> as repo secrets, run
+          <code>--mode browse</code>.</li>
+        </ol>
+        <p style="margin:4px 0 0"><b>Not a business?</b> Fine. Membership is open to
+        individuals and the default limits are sized for small builders. Being atypical can
+        slow account approval, not block it. Describe the app as a read-only buyer research
+        tool, not a sniper.</p>
+      </div>
+      <div class="side">
+        <h3>watchcount.com — skip it</h3>
+        <p style="margin:0">It's a consumer site for most-watched items, not a data feed.
+        No clean way to pull current bid plus end time programmatically. More steps, worse
+        data. The Browse API is both easier and better. Same verdict for eBay RSS feeds:
+        they refresh every ~30 min and hide anything ending within ~15 min, useless for
+        "ending soon".</p>
+      </div>
+    </div>
+  </div>
+
+  <h2>What the next deep-research (what to sell) will add — and what would change the plan</h2>
+  <p>The data question is nearly closed. The open one is now <b>what to sell</b>. The new
+  prompt digs into category choice and the bad-listing angle, weighted to your real
+  constraints: high margin per flip, low volume, little time, limited storage. Two findings
+  would move the needle. First, if a category beats graded cards on margin-per-flip while
+  keeping a clean enough identity to value automatically, we re-point the bot — category is
+  already a parameter, so that's config, not a rewrite. Second, if bad-listing arbitrage
+  holds up (poorly pictured or described lots that buyers skip), the model needs to cope
+  with thin, scruffy listings: fewer comps, looser title matching, more weight on
+  confidence. Right now it's tuned for clean ones. That's a concrete change to the gate, not
+  a vague ambition.</p>
+
+  <div class="foot">Backup if Browse access snags: Apify <code>data_ops_main/ebay-uk-scraper</code> for a UK proof-of-concept.
+  Avoid RapidAPI scrapers and RSS for ending-soon logic (verified twice). Full results saved alongside this file as
+  <code>RESEARCH-results-grok.md</code> and <code>RESEARCH-results-claude-chat.md</code>.</div>
+</body>
+</html>

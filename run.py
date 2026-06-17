@@ -16,7 +16,7 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
 
 from valbot.alert import get_alerter  # noqa: E402
-from valbot.config import ROOT, load_config  # noqa: E402
+from valbot.config import ROOT, apply_sector, load_config  # noqa: E402
 from valbot.ebay_client import get_source  # noqa: E402
 from valbot.formatting import format_summary  # noqa: E402
 from valbot.pipeline import run_pipeline  # noqa: E402
@@ -34,9 +34,11 @@ def main() -> int:
     p.add_argument("--dry-run", action="store_true", help="print alerts, don't send")
     p.add_argument("--config", default=None, help="path to config.yaml")
     p.add_argument("--mock-data", default=None, help="path to mock listings JSON")
+    p.add_argument("--sector", default=None, help="sector profile (default: active_sector)")
     args = p.parse_args()
 
-    cfg = load_config(args.config)
+    cfg = apply_sector(load_config(args.config), args.sector)
+    print(f"Sector: {cfg.get('active_sector')}")
     source = get_source(cfg, args.mode, mock_path=args.mock_data)
     # In mock mode default to dry-run alerts unless secrets are present.
     dry = args.dry_run or args.mode == "mock"

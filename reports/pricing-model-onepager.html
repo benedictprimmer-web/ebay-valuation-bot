@@ -1,0 +1,113 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  @page { size: A4; margin: 14mm 15mm; }
+  * { box-sizing: border-box; }
+  body { font-family: "Helvetica Neue", Arial, sans-serif; color: #1c1c1a; font-size: 10.3px; line-height: 1.5; margin: 0; }
+  h1 { font-size: 19px; margin: 0 0 2px; letter-spacing: -0.2px; }
+  .meta { color: #7a7873; font-size: 9.5px; margin-bottom: 10px; }
+  h2 { font-size: 12px; margin: 14px 0 5px; color: #4a42a8; letter-spacing: 0.2px; }
+  p { margin: 0 0 7px; }
+  .lead { font-size: 10.8px; color: #333330; }
+  .flow { width: 100%; margin: 6px 0 4px; }
+  .cols { display: flex; gap: 18px; }
+  .col { flex: 1; }
+  .roads { margin-top: 4px; }
+  .road { border-left: 3px solid #5B4FC4; padding: 1px 0 1px 10px; margin-bottom: 8px; }
+  .road b { color: #1c1c1a; }
+  .ex { background: #f4f3fb; border: 1px solid #e0ddf3; border-radius: 7px; padding: 8px 11px; margin: 6px 0; }
+  .ex b { color: #4a42a8; }
+  .foot { color: #8a8881; font-size: 8.6px; margin-top: 12px; border-top: 1px solid #e6e4dd; padding-top: 6px; }
+  .tag { display:inline-block; background:#1D9E75; color:#fff; font-size:8.5px; font-weight:700; padding:1px 6px; border-radius:4px; vertical-align:middle; }
+  code { background:#f0eee8; padding:0 3px; border-radius:3px; font-size:9.3px; }
+</style>
+</head>
+<body>
+  <h1>eBay Valuation Bot — the pricing model, and where next</h1>
+  <div class="meta">Graded sports cards · read-only (it never bids) · 17 June 2026</div>
+
+  <p class="lead">The bot is now a working tool. You hand it a short watch list of cards; it values each against real
+  sold prices and tells you the most you should pay, how confident it is, and whether the auction you're watching is
+  worth a bid. No live auction feed is needed for this, so it runs today. You still place every bid by hand.</p>
+
+  <h2>How it prices one card</h2>
+
+  <svg class="flow" viewBox="0 0 760 100" xmlns="http://www.w3.org/2000/svg" font-family="Arial, sans-serif">
+    <defs><marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#bdbbcf"/></marker></defs>
+
+    <rect x="2" y="26" width="118" height="50" rx="8" fill="#fbfbfd" stroke="#d9d7ea" stroke-width="1.3"/>
+    <text x="61" y="47" text-anchor="middle" fill="#1c1c1a" font-size="11" font-weight="600">Sold comps</text>
+    <text x="61" y="66" text-anchor="middle" fill="#1c1c1a" font-size="13" font-weight="700">n=11</text>
+
+    <line x1="122" y1="51" x2="146" y2="51" stroke="#bdbbcf" stroke-width="1.3" marker-end="url(#a)"/>
+    <text x="134" y="42" text-anchor="middle" fill="#8a8881" font-size="9" font-style="italic">median</text>
+
+    <rect x="148" y="26" width="118" height="50" rx="8" fill="#fbfbfd" stroke="#d9d7ea" stroke-width="1.3"/>
+    <text x="207" y="47" text-anchor="middle" fill="#1c1c1a" font-size="11" font-weight="600">Median × 0.85</text>
+    <text x="207" y="66" text-anchor="middle" fill="#1c1c1a" font-size="13" font-weight="700">£80.75</text>
+
+    <line x1="268" y1="51" x2="292" y2="51" stroke="#bdbbcf" stroke-width="1.3" marker-end="url(#a)"/>
+    <text x="280" y="42" text-anchor="middle" fill="#8a8881" font-size="9" font-style="italic">− spread</text>
+
+    <rect x="294" y="26" width="128" height="50" rx="8" fill="#5B4FC4"/>
+    <text x="358" y="47" text-anchor="middle" fill="#ffffff" font-size="11" font-weight="600">Conservative</text>
+    <text x="358" y="66" text-anchor="middle" fill="#ffffff" font-size="14" font-weight="700">£79.05</text>
+
+    <line x1="424" y1="51" x2="448" y2="51" stroke="#bdbbcf" stroke-width="1.3" marker-end="url(#a)"/>
+    <text x="436" y="42" text-anchor="middle" fill="#8a8881" font-size="9" font-style="italic">− profit, fees</text>
+
+    <rect x="450" y="26" width="118" height="50" rx="8" fill="#fbfbfd" stroke="#5B4FC4" stroke-width="2"/>
+    <text x="509" y="47" text-anchor="middle" fill="#1c1c1a" font-size="11" font-weight="600">MAX BID</text>
+    <text x="509" y="67" text-anchor="middle" fill="#1c1c1a" font-size="15" font-weight="700">£49.60</text>
+
+    <line x1="570" y1="51" x2="594" y2="51" stroke="#bdbbcf" stroke-width="1.3" marker-end="url(#a)"/>
+    <text x="582" y="42" text-anchor="middle" fill="#8a8881" font-size="9" font-style="italic">vs £22</text>
+
+    <rect x="596" y="26" width="162" height="50" rx="8" fill="#1D9E75"/>
+    <text x="677" y="48" text-anchor="middle" fill="#ffffff" font-size="13" font-weight="700">BID</text>
+    <text x="677" y="66" text-anchor="middle" fill="#ffffff" font-size="9.5" font-weight="400">headroom £27.60</text>
+  </svg>
+
+  <div class="cols">
+    <div class="col">
+      <p><b>Start from real sold prices.</b> The Card API returns what graded cards like this one actually sold for,
+      including accepted offers. That beats asking prices, which only say what sellers hoped for.</p>
+      <p><b>Take the median, then cut for uncertainty.</b> The median ignores one freak sale. Then the bot subtracts a
+      multiple of the spread, so a scattered set of comps drags the value down on its own. Uncertainty sits inside the
+      number the money decision uses, not in a footnote.</p>
+      <p><b>Gate on confidence.</b> Fewer than 8 comps, or too wide a spread, and the bot stays quiet rather than guess.</p>
+    </div>
+    <div class="col">
+      <p><b>Work out the ceiling.</b> From the conservative value it takes off your target profit and every cost between
+      winning and reselling: eBay fees, the buyer-protection fee, postage both ways. What's left is the max bid, the most
+      you should ever pay.</p>
+      <p><b>Then judge the live price.</b> Under the max with the floors cleared reads <span class="tag">BID</span>;
+      over it reads SKIP; thin or scattered comps read LOW CONFIDENCE; no comps reads NO DATA.</p>
+      <div class="ex"><b>Worked example.</b> Erling Haaland PSA 10. 11 sold comps, median £95, conservative value £79.05,
+      max bid £49.60. The auction sits at £22, so it's a BID with £27.60 of headroom and high confidence.</div>
+    </div>
+  </div>
+
+  <h2>Three roads from here</h2>
+  <div class="roads">
+    <div class="road"><b>1. Sharpen the card model.</b> Two numbers are still placeholders and probably wrong. The
+    0.85 ratio was built for asking-price comps, but the Card API already gives sold prices, so it should sit near 1.0.
+    And the 0.79 USD→GBP rate hides a real gap: a US sold price is not a UK resale price. Both need calibrating against
+    your own won-and-resold outcomes. The live auction feed is also still missing, which is why this is manual for now.</div>
+    <div class="road"><b>2. Test a higher-margin, lower-volume category.</b> Cards were chosen because grading removes
+    condition guesswork, so comps line up cleanly. Electronics can pay far more per flip at lower volume, which fits the
+    effort-per-flip you care about. The risk is that condition variance returns. It only works where identity stays
+    clean: sealed or new stock, exact model numbers, stated refurb grades. Category is already a parameter in the code,
+    so a tight-identity category drops straight in.</div>
+    <div class="road"><b>3. Decide what you're actually selling.</b> The research consensus is that the edge is sharp
+    buying, not the tech, and that money comes from the flips themselves, from alert tools and Discords, or from writing
+    up what works. The cheapest proven route is to flip with it. Building it into a product only pays if others can't get
+    the same data. Pick one: a flipper who uses a tool, or someone selling the tool.</div>
+  </div>
+
+  <div class="foot">Code: <code>targets.py</code> + <code>src/valbot/targets.py</code>, reusing the existing valuation, fee and threshold modules. 33 tests passing.
+  Numbers from the mock fixture; rates confirmed against eBay UK on 16 June 2026. Placeholders (ratio, fx, floors) are starting points to calibrate, not settled values.</div>
+</body>
+</html>
