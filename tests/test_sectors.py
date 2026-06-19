@@ -27,10 +27,10 @@ def test_cameras_sector_overrides():
     assert cfg["active_sector"] == "cameras-lenses"
     assert cfg["fees"]["sell_fvf_pct"] == 0.069
     assert cfg["fx"]["usd_to_gbp"] == 1.0  # UK GBP only
-    assert cfg["thresholds"]["price_cap"] == 600.0
+    assert cfg["thresholds"]["price_cap"] == 250.0  # learning mode; raise once niches confirmed
     # untouched base keys survive the merge
     assert cfg["gate"]["min_comps"] == 8
-    assert "Sony A7 III body" in cfg["search"]["queries"]
+    assert "Sony A6000 body" in cfg["search"]["queries"]  # tier-down niches replacing blue-chips
 
 
 def test_unknown_sector_raises():

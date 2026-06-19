@@ -172,17 +172,21 @@ sectors:
       fx:
         usd_to_gbp: 1.0 # UK GBP comps only — no USD conversion, no US sourcing
       thresholds:
-        price_cap: 600.0 # cameras carry far higher value than the £50 card cap
-        profit_floor: 40.0 # high-margin / low-volume: only chase real spreads
+        price_cap: 250.0 # learning mode: lower risk, more volume; raise once niches confirmed
+        profit_floor: 20.0 # learning mode: see more deals, collect data; tighten from outcomes
       search:
         ending_within_hours: 24
         category_ids: {body: "31388", lens: "3323"}  # Browse API allows 1 ID per request
                                                       # 31388 Digital Cameras, 3323 Camera Lenses leaf
                                                       # NOT 78997 (Lenses & Filters parent — includes hoods)
         queries:
-          - "Sony A7 III body"
-          - "Canon RF 50mm f1.8"
-          - "Fujifilm X-T4 body"
+          # Tier-down niches: auction prices scattered, BIN ceiling £280-380, fits £250 cap
+          # Ranked by deal frequency + auction scatter (research/niche-cameras-tier-down.md)
+          - "Sony A6000 body"        # £90-200 auction, £320-380 BIN, 40-60 auctions/wk
+          - "Canon EOS 6D body"      # £120-230 auction, £280-340 BIN, 20-35/wk
+          - "Sony A7 II body"        # £160-280 auction, £320-380 BIN, 20-30/wk
+          - "Nikon D610 body"        # £140-240 auction, £280-360 BIN, 15-25/wk (recall stigma)
+          - "Fujifilm X-T30 body"    # £150-280 auction, £320-380 BIN, 15-25/wk
       # SOLD-COMP SOURCE (the open gap — see ADR-011). No clean official UK sold
       # feed exists; eBay Marketplace Insights stays partner-gated. The endpoint
       # below is a pluggable scaffold mirroring the cards lane's `thirdparty.sold`.
@@ -190,11 +194,16 @@ sectors:
       # GBP-native, country=GB, condition=used. Until then run --mode mock.
       thirdparty:
         sold:
-          # PLACEHOLDER — fill after choosing a provider (ADR-011 shortlist).
-          url: "https://CHOSEN_PROVIDER/sold"
-          auth: {scheme: "rapidapi", secret: "RAPIDAPI_KEY"}
-          query_param: "q"
-          extra_params: {country: "gb", condition: "used", sort: "date_desc"}
-          items_path: "data"
-          fields: {title: "title", price: "price", id: "id", url: "url"}
+          # Apify: harvestlab/ebay-scraper — $0.003/result, 13 markets incl. UK.
+          # Auth: Bearer APIFY_TOKEN (not RapidAPI). Requires a new Apify source type
+          # in ebay_client.py — the current thirdparty/sold plumbing is HTTP-only.
+          # Session to wire: POST run-sync to Apify, poll dataset items, filter sold==True.
+          # Confirmed fields (research/niche-cameras-tier-down.md):
+          #   priceValue (float GBP), currency, title, itemId, url, sold (bool), soldDate
+          # Input: {searchQuery: "...", ebayDomain: "ebay.co.uk", categoryId: "31388"}
+          # Once wired: set sold_to_asking_ratio: 1.0 (real sold prices, no proxy needed)
+          actor: "harvestlab/ebay-scraper"  # apify.com/harvestlab/ebay-scraper
+          auth: {scheme: "apify", secret: "APIFY_TOKEN"}
+          extra_params: {ebayDomain: "ebay.co.uk", listingType: "Auction", condition: "Used"}
+          fields: {title: "title", price: "priceValue", id: "itemId", url: "url", sold: "sold", sold_date: "soldDate"}
           currency: "GBP"

@@ -76,8 +76,9 @@ def test_pipeline_alerts_underpriced_skips_thin_and_scattered():
     result = run_pipeline(cfg, src, _NullAlerter(), _NullStore())
 
     alerted = {a.listing.listing_id for a in result.alerts}
-    assert "CAM-A7" in alerted      # value ~£682, current £360
-    assert "CAM-RF50" in alerted    # value ~£150, current £70
+    # CAM-A7 (£360) exceeds price_cap=250 → correctly blocked in learning mode
+    assert "CAM-A7" not in alerted
+    assert "CAM-RF50" in alerted    # value ~£150, current £70 — under cap, strong spread
 
     by_id = {a.listing.listing_id: a for a in result.assessments}
     # thin comps (4 < 8) -> gate fails, no alert
