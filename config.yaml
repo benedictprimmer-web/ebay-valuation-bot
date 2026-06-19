@@ -175,6 +175,7 @@ sectors:
         price_cap: 600.0 # cameras carry far higher value than the £50 card cap
         profit_floor: 40.0 # high-margin / low-volume: only chase real spreads
       search:
+        ending_within_hours: 24
         category_ids: {body: "31388", lens: "3323"}  # Browse API allows 1 ID per request
                                                       # 31388 Digital Cameras, 3323 Camera Lenses leaf
                                                       # NOT 78997 (Lenses & Filters parent — includes hoods)

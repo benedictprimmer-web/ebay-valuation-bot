@@ -15,6 +15,7 @@ import json
 import re
 import time
 from base64 import b64encode
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Protocol
 
@@ -165,6 +166,20 @@ def dig(obj: dict, path: str):
     return cur
 
 
+def ends_within(ends_at: str | None, hours, *, now=None) -> bool:
+    """True if ends_at is an ISO8601 timestamp that falls within the next `hours` hours."""
+    if not ends_at:
+        return False
+    try:
+        dt = datetime.fromisoformat(ends_at.replace("Z", "+00:00"))
+    except ValueError:
+        return False
+    if dt.tzinfo is None:
+        dt = dt.replace(tzinfo=timezone.utc)
+    now = now or datetime.now(timezone.utc)
+    return now <= dt <= now + timedelta(hours=float(hours))
+
+
 class BrowseAPISource:
     """Live eBay Browse API. Read-only. Needs production App ID + Cert ID.
 
@@ -279,13 +294,17 @@ class BrowseAPISource:
         )
 
     def fetch_targets(self) -> list[Listing]:
+        window = self.search_cfg.get("ending_within_hours")
         out: list[Listing] = []
         for query in self.search_cfg["queries"]:
             tokens = [t for t in query.lower().split() if not parse_grade(t)]
             for item in self._search(query):
                 lst = self._to_listing(item, tokens)
-                if lst:
-                    out.append(lst)
+                if not lst:
+                    continue
+                if window and not ends_within(lst.ends_at, window):
+                    continue
+                out.append(lst)
         return out
 
     def fetch_comps(self, card) -> list[Listing]:
