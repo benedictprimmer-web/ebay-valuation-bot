@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<style>
+  @page { size: A4; margin: 11mm 13mm; }
+  * { box-sizing: border-box; }
+  body { font-family: "Helvetica Neue", Arial, sans-serif; color: #1c1c1a; font-size: 9.4px; line-height: 1.42; margin: 0; }
+  h1 { font-size: 17px; margin: 0 0 2px; letter-spacing: -0.2px; }
+  .meta { color: #7a7873; font-size: 9px; margin-bottom: 8px; }
+  h2 { font-size: 11px; margin: 11px 0 4px; color: #4a42a8; letter-spacing: 0.2px; }
+  p { margin: 0 0 5px; }
+  .lead { font-size: 9.8px; color: #333330; }
+  .flow { width: 100%; margin: 5px 0 3px; }
+  .cols { display: flex; gap: 16px; }
+  .col { flex: 1; }
+  b { color: #1c1c1a; }
+  .ex { background: #f4f3fb; border: 1px solid #e0ddf3; border-radius: 7px; padding: 7px 10px; margin: 5px 0; }
+  .ex b { color: #4a42a8; }
+  .foot { color: #8a8881; font-size: 8.2px; margin-top: 9px; border-top: 1px solid #e6e4dd; padding-top: 5px; }
+  .tag { display:inline-block; background:#1D9E75; color:#fff; font-size:8px; font-weight:700; padding:1px 5px; border-radius:4px; vertical-align:middle; }
+  .tag.skip { background:#b2542f; }
+  .tag.low { background:#9a8a1e; }
+  code { background:#f0eee8; padding:0 3px; border-radius:3px; font-size:8.7px; }
+  table { width:100%; border-collapse: collapse; margin: 3px 0 4px; font-size: 8.7px; }
+  th, td { text-align:left; padding: 2.5px 6px; border-bottom: 1px solid #eae8e0; vertical-align: top; }
+  th { color:#4a42a8; font-size:8.3px; text-transform:uppercase; letter-spacing:0.3px; border-bottom:1.4px solid #d9d7ea; }
+  td code { font-size:8.3px; }
+  .num { color:#1D9E75; font-weight:700; }
+  .steps { padding-left: 0; margin: 3px 0; list-style: none; counter-reset: s; }
+  .steps li { position: relative; padding: 1px 0 1px 19px; margin-bottom: 2px; counter-increment: s; }
+  .steps li::before { content: counter(s); position:absolute; left:0; top:1px; width:14px; height:14px; background:#5B4FC4; color:#fff; border-radius:50%; font-size:8.5px; font-weight:700; text-align:center; line-height:14px; }
+</style>
+</head>
+<body>
+  <h1>eBay Valuation Bot: the model, the learning loop, and go-live</h1>
+  <div class="meta">How it prices, where it learns, what you can tune · 17 June 2026 · read-only (it never bids)</div>
+
+  <p class="lead">Short version: there's no black-box AI doing the pricing. It's a transparent statistics model you can
+  read top to bottom, with every dial exposed in one config file. The "learning" is a deliberate human-in-the-loop
+  calibration loop rather than a self-training model: it tells you what to nudge, you decide. Here's the whole thing on a page.</p>
+
+  <h2>How it prices one item</h2>
+  <svg class="flow" viewBox="0 0 760 84" xmlns="http://www.w3.org/2000/svg" font-family="Arial, sans-serif">
+    <defs><marker id="a" viewBox="0 0 10 10" refX="8" refY="5" markerWidth="6" markerHeight="6" orient="auto"><path d="M0,0 L10,5 L0,10 z" fill="#bdbbcf"/></marker></defs>
+    <rect x="2" y="20" width="112" height="46" rx="8" fill="#fbfbfd" stroke="#d9d7ea" stroke-width="1.3"/>
+    <text x="58" y="39" text-anchor="middle" fill="#1c1c1a" font-size="10.5" font-weight="600">Comp prices</text>
+    <text x="58" y="57" text-anchor="middle" fill="#1c1c1a" font-size="12" font-weight="700">n = 11</text>
+    <line x1="116" y1="43" x2="138" y2="43" stroke="#bdbbcf" stroke-width="1.3" marker-end="url(#a)"/>
+    <text x="127" y="35" text-anchor="middle" fill="#8a8881" font-size="8.5" font-style="italic">median</text>
+    <rect x="140" y="20" width="124" height="46" rx="8" fill="#fbfbfd" stroke="#d9d7ea" stroke-width="1.3"/>
+    <text x="202" y="39" text-anchor="middle" fill="#1c1c1a" font-size="10.5" font-weight="600">Median × ratio</text>
+    <text x="202" y="57" text-anchor="middle" fill="#1c1c1a" font-size="12" font-weight="700">point value</text>
+    <line x1="266" y1="43" x2="288" y2="43" stroke="#bdbbcf" stroke-width="1.3" marker-end="url(#a)"/>
+    <text x="277" y="35" text-anchor="middle" fill="#8a8881" font-size="8.5" font-style="italic">− k·spread</text>
+    <rect x="290" y="20" width="128" height="46" rx="8" fill="#5B4FC4"/>
+    <text x="354" y="39" text-anchor="middle" fill="#ffffff" font-size="10.5" font-weight="600">Conservative</text>
+    <text x="354" y="57" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="700">value</text>
+    <line x1="420" y1="43" x2="442" y2="43" stroke="#bdbbcf" stroke-width="1.3" marker-end="url(#a)"/>
+    <text x="431" y="35" text-anchor="middle" fill="#8a8881" font-size="8.5" font-style="italic">− profit, fees</text>
+    <rect x="444" y="20" width="112" height="46" rx="8" fill="#fbfbfd" stroke="#5B4FC4" stroke-width="2"/>
+    <text x="500" y="39" text-anchor="middle" fill="#1c1c1a" font-size="10.5" font-weight="600">MAX BID</text>
+    <text x="500" y="58" text-anchor="middle" fill="#1c1c1a" font-size="13" font-weight="700">ceiling £</text>
+    <line x1="558" y1="43" x2="580" y2="43" stroke="#bdbbcf" stroke-width="1.3" marker-end="url(#a)"/>
+    <text x="569" y="35" text-anchor="middle" fill="#8a8881" font-size="8.5" font-style="italic">vs live</text>
+    <rect x="582" y="20" width="176" height="46" rx="8" fill="#1D9E75"/>
+    <text x="670" y="41" text-anchor="middle" fill="#ffffff" font-size="12" font-weight="700">BID / SKIP</text>
+    <text x="670" y="58" text-anchor="middle" fill="#ffffff" font-size="8.8" font-weight="400">+ confidence label</text>
+  </svg>
+
+  <div class="cols">
+    <div class="col">
+      <p><b>More than an average: an estimate that resists noise.</b> It takes the <b>median</b> of comparable
+      prices, not the mean, so one freak sale can't drag the number. Then it multiplies by a <b>sold-to-asking ratio</b>
+      and subtracts <code>k × spread</code>, a measure of how scattered the comps are (MAD or IQR, both outlier-resistant).
+      Scattered or thin comps pull the value <i>down on their own</i>. Every money decision uses that conservative value,
+      never the raw midpoint.</p>
+      <p><b>The ceiling, then the call.</b> From the conservative value it strips your target profit and every cost between
+      winning and reselling (eBay fees, buyer-protection fee, postage both ways) by solving for the highest buy price that
+      still clears your profit. That's the <b>max bid</b>. If the live price sits under it and the floors clear, it reads
+      <span class="tag">BID</span>; over it <span class="tag skip">SKIP</span>; thin/scattered comps
+      <span class="tag low">LOW CONF</span>; no comps <span class="tag skip">NO DATA</span>.</p>
+    </div>
+    <div class="col">
+      <p><b>What data goes in.</b> Two live feeds plus your watch list. <b>Comps:</b> recent sold prices for the exact item
+      (the cards lane already has this; cameras start on a Browse active-listing proxy until real sold data is wired). <b>Targets:</b>
+      the live auctions you're watching, pulled ending-soonest. <b>Your watch list:</b> the specific cards or camera models
+      to value. Cameras add an identity step first: a messy title ("mk 3", "mark iii") resolves to one exact model, or it's
+      dropped rather than valued on a guess.</p>
+      <div class="ex"><b>Why no machine-learning model?</b> Three reasons, all deliberate. The data is small (a handful of
+      comps per item), so a fitted model would overfit noise. You need to <i>trust the number</i> enough to spend real money,
+      and a median you can explain beats a score you can't. And it ships now. If volume grows, a learned ratio-by-condition model
+      is the obvious upgrade, and the calibration log is already collecting the training data for it.</div>
+    </div>
+  </div>
+
+  <h2>Where it learns: the calibration loop</h2>
+  <p>Every alert is logged with its prediction. When a flip resolves, you fill in what actually happened, and
+  <code>calibrate.py</code> reads the gap between predicted and real. It <b>reports and suggests, never auto-edits</b>,
+  so you stay in control of every dial. Three things it tells you:</p>
+  <ol class="steps">
+    <li><b>Suggested sold ratio</b>, from real outcomes: <code>resale ÷ comp median</code>. This is the main learning signal; it replaces the hand-set 0.85 / 1.0 placeholder once real flips land.</li>
+    <li><b>Conservative coverage</b>: the share of flips where resale ≥ the conservative value. Want this high; if it's low, the model is over-valuing and <code>k</code> should rise.</li>
+    <li><b>Profit bias</b>: median of (real profit − predicted). Positive means it under-promises (safe); negative means it over-promises (tighten the floors).</li>
+  </ol>
+  <p style="margin-top:2px;">Run it during the read-only week before trusting any number to spend against:
+  <code>python calibrate.py</code>. Cards and cameras share the same loop.</p>
+
+  <h2>What you can change: every dial, in <code>config.yaml</code></h2>
+  <table>
+    <tr><th>Parameter</th><th>Does what</th><th>Now</th></tr>
+    <tr><td><code>sold_to_asking_ratio</code></td><td>Sold price as a fraction of comp median. The headline learning dial.</td><td class="num">0.85 / 1.0</td></tr>
+    <tr><td><code>k</code></td><td>How hard uncertainty is penalised. Higher = more cautious value.</td><td class="num">1.0</td></tr>
+    <tr><td><code>spread_method</code></td><td>Which outlier-resistant spread to use: <code>mad</code> or <code>iqr</code>.</td><td class="num">mad</td></tr>
+    <tr><td><code>gate.min_comps</code> / <code>max_rel_dispersion</code></td><td>Confidence gate: stay quiet below N comps or above this scatter.</td><td class="num">8 / 0.35</td></tr>
+    <tr><td><code>margin_floor</code> / <code>profit_floor</code></td><td>Won't recommend below this % margin or absolute £ profit.</td><td class="num">25% / £15</td></tr>
+    <tr><td><code>price_cap</code></td><td>Hard ceiling on item price: a risk control, not a ranking input.</td><td class="num">£50 / £600</td></tr>
+    <tr><td><code>fees.*</code></td><td>Itemised: FVF %, fixed fee, buyer-protection tiers, postage both ways.</td><td class="num">all-in</td></tr>
+    <tr><td>confidence shaping</td><td><code>n_full_confidence</code>, <code>confidence_high/medium</code> set the high/med/low bands.</td><td class="num">15 / .66 / .33</td></tr>
+  </table>
+  <p style="margin-top:1px;">Each sector (cards, cameras) overrides only what differs, so one file holds both lanes. Change a value, re-run, see the effect instantly on mock data.</p>
+
+  <h2>When the eBay keyset lands: the go-live sequence</h2>
+  <p>Everything below is built and tested on mock data; it's gated only on your developer approval, then runs in one pass:</p>
+  <ol class="steps">
+    <li><b>Account-deletion notification step:</b> eBay's one compliance hoop. Read-only, stores no user data (opt out).</li>
+    <li><b>Wire the keys:</b> add <code>EBAY_APP_ID</code> / <code>EBAY_CERT_ID</code> as repo secrets, switch the live source to <code>--mode browse</code>.</li>
+    <li><b>Self-test a real GB auction:</b> confirm bid price, bid count and end-date fields come back populated before trusting them. Both lanes.</li>
+    <li><b>Wire the cameras sold source:</b> Browse proxy first (ratio ≈ 0.85), upgrade to real GBP sold data later (ratio → 1.0). One config edit.</li>
+    <li><b>Read-only week, then calibrate:</b> let it log predictions against real outcomes, run the loop above, set the ratio and floors from reality, then trust it.</li>
+  </ol>
+
+  <div class="foot">Read-only by design: the bot values and alerts, you place every bid by hand. No autonomous spend, no scraping, no ToS breach. Model lives in <code>src/valbot/</code> (valuation, fees, threshold, calibrate); all dials in <code>config.yaml</code>. Decisions logged in <code>docs/adr/</code>.</div>
+</body>
+</html>
