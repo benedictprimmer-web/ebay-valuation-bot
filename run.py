@@ -15,6 +15,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parent / "src"))
 
+try:
+    from dotenv import load_dotenv  # noqa: E402
+    load_dotenv()
+except ImportError:
+    pass
+
 from valbot.alert import get_alerter  # noqa: E402
 from valbot.config import ROOT, apply_sector, load_config  # noqa: E402
 from valbot.ebay_client import get_source  # noqa: E402

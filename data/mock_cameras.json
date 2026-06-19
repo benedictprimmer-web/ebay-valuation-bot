@@ -1,8 +1,8 @@
 {
   "_note": "Cameras-lane pipeline fixture (no keys). Mirrors mock_listings.json but identity is exact body/lens model, not grader+grade. Targets are auctions to value; comps are real GBP sold listings, matched by camera identity. Messy spellings of one model must collapse to a single key. Covers: two alerts (Sony A7 III, Canon RF 50mm f1.8), thin comps (Canon EOS R6), scattered comps (Fujifilm X-T4), and resolve-or-skip (the untested job lot target is dropped before valuation).",
   "targets": [
-    {"listing_id": "CAM-A7", "title": "Sony A7 III body only, boxed", "price": 450.0, "is_auction": true, "ends_at": "2026-06-17T20:00:00Z", "url": "https://www.ebay.co.uk/itm/CAM-A7"},
-    {"listing_id": "CAM-RF50", "title": "Canon RF 50mm f1.8 STM lens", "price": 95.0, "is_auction": true, "ends_at": "2026-06-17T19:30:00Z", "url": "https://www.ebay.co.uk/itm/CAM-RF50"},
+    {"listing_id": "CAM-A7", "title": "Sony A7 III body only, boxed", "price": 360.0, "is_auction": true, "ends_at": "2026-06-17T20:00:00Z", "url": "https://www.ebay.co.uk/itm/CAM-A7"},
+    {"listing_id": "CAM-RF50", "title": "Canon RF 50mm f1.8 STM lens", "price": 70.0, "is_auction": true, "ends_at": "2026-06-17T19:30:00Z", "url": "https://www.ebay.co.uk/itm/CAM-RF50"},
     {"listing_id": "CAM-R6", "title": "Canon EOS R6 body", "price": 900.0, "is_auction": true, "ends_at": "2026-06-17T21:00:00Z", "url": "https://www.ebay.co.uk/itm/CAM-R6"},
     {"listing_id": "CAM-XT4", "title": "Fujifilm X-T4 body", "price": 600.0, "is_auction": true, "ends_at": "2026-06-17T22:00:00Z", "url": "https://www.ebay.co.uk/itm/CAM-XT4"},
     {"listing_id": "CAM-JUNK", "title": "job lot of old cameras untested spares or repair", "price": 40.0, "is_auction": true, "ends_at": "2026-06-17T22:30:00Z", "url": "https://www.ebay.co.uk/itm/CAM-JUNK"}

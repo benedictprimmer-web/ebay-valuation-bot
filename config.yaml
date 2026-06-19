@@ -162,7 +162,7 @@ sectors:
       category: "cameras-lenses"
       identity: "camera" # exact body/lens model, not grader+grade
       valuation:
-        sold_to_asking_ratio: 1.0 # value on real GBP sold comps
+        sold_to_asking_ratio: 0.85 # Browse active-listing proxy (ADR-011); set 1.0 when Apify sold feed is wired
         # If the sold source falls back to Browse ACTIVE listings (see ADR-011),
         # drop this toward ~0.85: UK used gear clears under median asking.
       fees:

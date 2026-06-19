@@ -76,8 +76,8 @@ def test_pipeline_alerts_underpriced_skips_thin_and_scattered():
     result = run_pipeline(cfg, src, _NullAlerter(), _NullStore())
 
     alerted = {a.listing.listing_id for a in result.alerts}
-    assert "CAM-A7" in alerted      # value ~£800, current £450
-    assert "CAM-RF50" in alerted    # value ~£180, current £95
+    assert "CAM-A7" in alerted      # value ~£682, current £360
+    assert "CAM-RF50" in alerted    # value ~£150, current £70
 
     by_id = {a.listing.listing_id: a for a in result.assessments}
     # thin comps (4 < 8) -> gate fails, no alert
