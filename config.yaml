@@ -165,6 +165,7 @@ sectors:
         sold_to_asking_ratio: 0.85 # Browse active-listing proxy (ADR-011); set 1.0 when Apify sold feed is wired
         # If the sold source falls back to Browse ACTIVE listings (see ADR-011),
         # drop this toward ~0.85: UK used gear clears under median asking.
+        comp_min_price: {body: 80.0, lens: 25.0} # backstop: accessories that slip past category filter
       fees:
         seller_type: "business"
         sell_fvf_pct: 0.069 # UK cameras/lenses ~6.9% (confirm)
@@ -174,6 +175,9 @@ sectors:
         price_cap: 600.0 # cameras carry far higher value than the £50 card cap
         profit_floor: 40.0 # high-margin / low-volume: only chase real spreads
       search:
+        category_ids: {body: "31388", lens: "3323"}  # Browse API allows 1 ID per request
+                                                      # 31388 Digital Cameras, 3323 Camera Lenses leaf
+                                                      # NOT 78997 (Lenses & Filters parent — includes hoods)
         queries:
           - "Sony A7 III body"
           - "Canon RF 50mm f1.8"

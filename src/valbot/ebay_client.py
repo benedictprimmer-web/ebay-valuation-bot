@@ -216,7 +216,7 @@ class BrowseAPISource:
         }
 
     # -- search --------------------------------------------------------------
-    def _search(self, query: str, extra_filter: str = "") -> list[dict]:
+    def _search(self, query: str, extra_filter: str = "", category_id: str = "") -> list[dict]:
         import requests
 
         filt = "buyingOptions:{AUCTION}"
@@ -228,6 +228,8 @@ class BrowseAPISource:
             "limit": str(self.search_cfg["max_results_per_query"]),
             "sort": "endingSoonest",
         }
+        if category_id:
+            params["category_ids"] = category_id
         resp = requests.get(
             self.SEARCH_URL, headers=self._headers(), params=params, timeout=30
         )
@@ -288,13 +290,22 @@ class BrowseAPISource:
 
     def fetch_comps(self, card) -> list[Listing]:
         if self.identity == "camera":
+            floors = (self.cfg.get("valuation") or {}).get("comp_min_price") or {}
+            cat_map = (self.search_cfg.get("category_ids") or {})
+            category_id = cat_map.get(getattr(card, "kind", ""), "") if isinstance(cat_map, dict) else ""
             out: list[Listing] = []
             for item in self._search(
-                card.label(), extra_filter="buyingOptions:{FIXED_PRICE|AUCTION}"
+                card.label(),
+                extra_filter="buyingOptions:{FIXED_PRICE|AUCTION}",
+                category_id=category_id,
             ):
                 lst = self._to_listing(item, [])
-                if lst and lst.card.matches(card):
-                    out.append(lst)
+                if not lst or not lst.card.matches(card):
+                    continue
+                floor = floors.get(getattr(lst.card, "kind", ""))
+                if floor and lst.price < floor:
+                    continue
+                out.append(lst)
             return out
         query = f"{card.player} {card.set_name} {card.grader} {card.grade:g}"
         tokens = [t for t in query.lower().split() if not parse_grade(t)]
