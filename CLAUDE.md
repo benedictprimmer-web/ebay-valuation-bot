@@ -11,6 +11,17 @@
 - Prefer: cache sold comps (sold medians are stable day-to-day; reuse within ~7 days = 0 pulls),
   and run the sold feed manually / on-demand, not on the 20-min schedule.
 
+## Implemented budget protection (src/valbot/cache.py)
+- `SoldFeedCache` caches the sold feed for `cache_days` (30) and enforces
+  `monthly_pull_budget` (50) via a monthly ledger. Both config'd on the cameras
+  `thirdparty.sold` endpoint. Cache hit = 0 pulls; over budget = BudgetExceeded
+  (callers degrade to "no fresh data", never crash/overspend).
+- State lives in `data/cache/{sold_cache,pull_ledger}.json`, committed back by the
+  workflow so it survives ephemeral Actions runs.
+- Scatter scanner: `python scan.py --sector cameras-lenses --mode thirdparty` ranks
+  niches by sold-price differentiation (rel-dispersion × √n). Warm cache = 0 pulls.
+  Appends to `data/scatter_history.json`.
+
 ## Secrets
 - The workflow reads env `RAPIDAPI_KEY` from `secrets.RAPIDAPI_KEY` (valbot.yml). One RapidAPI
   account key works across all subscribed APIs, so the live + sold feeds share it. The repo

@@ -5,8 +5,10 @@ Read-only. Nothing here places a bid or moves money.
 
 from __future__ import annotations
 
+import sys
 from dataclasses import dataclass
 
+from .cache import BudgetExceeded
 from .ebay_client import ListingSource
 from .formatting import format_alert
 from .models import Assessment
@@ -26,7 +28,11 @@ def run_pipeline(cfg: dict, source: ListingSource, alerter, store) -> RunResult:
 
     assessments: list[Assessment] = []
     for target in targets:
-        comps = source.fetch_comps(target.card)
+        try:
+            comps = source.fetch_comps(target.card)
+        except BudgetExceeded as e:
+            print(f"[budget] {e}", file=sys.stderr)
+            comps = []  # no fresh comps -> valuation None -> target skipped, no crash
         valuation = value_card(target.card, comps, cfg["valuation"])
         assessments.append(assess(target, valuation, cfg))
 

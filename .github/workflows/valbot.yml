@@ -44,6 +44,8 @@ jobs:
         run: |
           git config user.name "valbot"
           git config user.email "valbot@users.noreply.github.com"
-          git add data/state/alerted.json data/outcomes.json || true
-          git diff --staged --quiet || git commit -m "valbot: update alert state [skip ci]"
+          # Persist alert state + the sold-feed cache/ledger so the 30-day cache and the
+          # monthly pull budget survive across ephemeral runs (see src/valbot/cache.py).
+          git add data/state/alerted.json data/outcomes.json data/cache || true
+          git diff --staged --quiet || git commit -m "valbot: update alert state + cache [skip ci]"
           git push || true

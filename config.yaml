@@ -207,3 +207,8 @@ sectors:
           items_path: "products"
           fields: {title: "title", price: "sale_price", id: "item_id", url: "link"}
           currency: "GBP"
+          # Budget guard (see CLAUDE.md). Sold medians are near-stationary, so cache each
+          # model's response for ~a month: a re-run then costs 0 pulls. The monthly ledger
+          # refuses live pulls once 50 are spent — 1 pull/model/month => up to 50 models.
+          cache_days: 30
+          monthly_pull_budget: 50
