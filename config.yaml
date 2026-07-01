@@ -205,8 +205,18 @@ sectors:
           # bot's own dispersion gate (not the provider) decides what's too scattered.
           extra_params: {site_id: "3", max_search_results: 60, remove_outliers: false}
           items_path: "products"
-          fields: {title: "title", price: "sale_price", id: "item_id", url: "link"}
+          fields: {title: "title", price: "sale_price", id: "item_id", url: "link", condition: "condition", buying_format: "buying_format"}
           currency: "GBP"
+          # Clean the comps client-side (0 extra pulls — applied to cached raw items too):
+          # drop new/parts conditions and multi-item bundles so the distribution reflects
+          # genuine used single bodies. Substring match, case-insensitive.
+          # NOTE: exclude keywords suit BODY niches; revisit if lens niches are added.
+          exclude_conditions: ["new", "parts", "spares", "faulty", "not working"]
+          # Bundle-specific phrasing only — NOT bare "lens" (that would wrongly drop
+          # legit "body only, no lens" listings). Bundles with an explicit focal length
+          # (e.g. "16-50mm") are already excluded upstream: the parser reads a focal as a
+          # LENS identity, so it never matches a body niche.
+          exclude_title_keywords: ["bundle", "lenses", "with lens", "+ lens", "and lens", "zoom", "kit", "grip", "joblot", "job lot", "twin"]
           # Budget guard (see CLAUDE.md). Sold medians are near-stationary, so cache each
           # model's response for ~a month: a re-run then costs 0 pulls. The monthly ledger
           # refuses live pulls once 50 are spent — 1 pull/model/month => up to 50 models.

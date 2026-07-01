@@ -94,6 +94,9 @@ def scan(cfg: dict, source) -> list[dict]:
         except BudgetExceeded:
             rows.append({"query": query, "source": "skipped (budget)", "stats": {}})
             continue
+        except Exception as e:  # a flaky provider on one niche shouldn't kill the scan
+            rows.append({"query": query, "source": f"error: {type(e).__name__}", "stats": {}})
+            continue
         if cache is None:
             src = "live"
         else:

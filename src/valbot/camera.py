@@ -79,6 +79,18 @@ class CameraItem:
         model = " ".join(tok(t) for t in self.model.split())
         return f"{self.brand.title()} {model}".strip()
 
+    def search_query(self) -> str:
+        """Search term for comp lookups. Renders a Mark version as a Roman numeral
+        (a7 2 -> "Sony A7 II") because that's how sellers title listings — searching
+        "Sony A7 2" returns nothing. The key() used for MATCHING stays "...|a7 2", so
+        a returned "A7 II" listing still parses back to the same identity and matches."""
+        roman = {"2": "II", "3": "III", "4": "IV", "5": "V", "6": "VI"}
+        parts = self.model.split()
+        if len(parts) >= 2 and parts[-1] in roman:
+            core = " ".join(p.upper() for p in parts[:-1])
+            return f"{self.brand.title()} {core} {roman[parts[-1]]}".strip()
+        return self.label()
+
 
 def _prep(title: str) -> tuple[str, str]:
     """Return (base, spaced). base keeps dashes/dots (for focal & aperture); spaced

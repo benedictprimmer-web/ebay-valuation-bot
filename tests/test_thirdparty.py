@@ -135,6 +135,35 @@ def test_sold_endpoint_issues_post_with_json_body(monkeypatch):
     assert len(rows) == 3
 
 
+def test_camera_search_query_renders_roman_version():
+    from valbot.camera import parse_camera
+    # the bug that made "Sony A7 II" return 0 comps: model key is a7 2, but the search
+    # term must read "A7 II" to match how sellers title listings.
+    assert parse_camera("Sony A7 II body").search_query() == "Sony A7 II"
+    assert parse_camera("Sony A6000 body").search_query() == "Sony A6000"
+    assert parse_camera("Canon EOS 6D body").search_query() == "Canon 6D"
+
+
+def test_sold_comps_drop_new_parts_and_bundles(monkeypatch):
+    from valbot.camera import parse_camera
+    cfg = apply_sector(load_config(), "cameras-lenses")
+    src = ThirdPartySource(api_key="x", cfg=cfg)
+    resp = {"products": [
+        {"title": "Sony A6000 body only", "sale_price": 250.0, "condition": "Pre-owned",
+         "item_id": "1", "link": "u1"},                                      # keep
+        {"title": "Sony A6000 body", "sale_price": 400.0, "condition": "New",
+         "item_id": "2", "link": "u2"},                                      # new -> drop
+        {"title": "Sony A6000 with lens bundle", "sale_price": 390.0, "condition": "Used",
+         "item_id": "3", "link": "u3"},                                      # bundle -> drop
+        {"title": "Sony A6000 for parts not working", "sale_price": 80.0,
+         "condition": "For parts or not working", "item_id": "4", "link": "u4"},  # parts -> drop
+    ]}
+    import requests
+    monkeypatch.setattr(requests, "post", lambda *a, **k: _FakeResp(resp))
+    comps = src.fetch_comps(parse_camera("Sony A6000 body"))
+    assert [round(c.price) for c in comps] == [250]  # only the clean used body survives
+
+
 def test_cameras_sold_comps_parse_and_filter_by_model(monkeypatch):
     cfg = apply_sector(load_config(), "cameras-lenses")
     src = ThirdPartySource(api_key="rapid-key", cfg=cfg)

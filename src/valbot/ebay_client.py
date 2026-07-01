@@ -314,7 +314,7 @@ class BrowseAPISource:
             category_id = cat_map.get(getattr(card, "kind", ""), "") if isinstance(cat_map, dict) else ""
             out: list[Listing] = []
             for item in self._search(
-                card.label(),
+                card.search_query(),
                 extra_filter="buyingOptions:{FIXED_PRICE|AUCTION}",
                 category_id=category_id,
             ):
@@ -435,15 +435,28 @@ class ThirdPartySource:
     def _parse(self, items: list[dict], endpoint: dict, tokens, is_auction) -> list[Listing]:
         f = endpoint["fields"]
         fx = self._fx_factor(endpoint)
+        # Optional client-side cleaning (applied to cached raw items too -> 0 extra pulls):
+        # drop new/parts conditions and multi-item bundles so the comp distribution
+        # reflects genuine used single bodies, not boxed kits or spares/repair units.
+        excl_cond = [c.lower() for c in endpoint.get("exclude_conditions", [])]
+        excl_kw = [k.lower() for k in endpoint.get("exclude_title_keywords", [])]
         out: list[Listing] = []
         for item in items:
+            title = str(dig(item, f["title"]) or "")
+            low = title.lower()
+            if excl_kw and any(k in low for k in excl_kw):
+                continue
+            if excl_cond and "condition" in f:
+                cond = str(dig(item, f["condition"]) or "").lower()
+                if any(c in cond for c in excl_cond):
+                    continue
             price_raw = dig(item, f["price"])
             try:
                 price = float(price_raw) * fx
             except (TypeError, ValueError):
                 continue
             lst = listing_from_title(
-                title=str(dig(item, f["title"]) or ""),
+                title=title,
                 price=price,
                 listing_id=str(dig(item, f["id"]) or ""),
                 url=str(dig(item, f["url"]) or ""),
@@ -465,7 +478,7 @@ class ThirdPartySource:
 
     def fetch_comps(self, card) -> list[Listing]:
         if self.identity == "camera":
-            query = card.label()
+            query = card.search_query()  # Roman-numeral versions so "A7 II" matches listings
             items = self._get(self.tp["sold"], query)
             comps = self._parse(items, self.tp["sold"], [], False)
             return [c for c in comps if c.card.matches(card)]
