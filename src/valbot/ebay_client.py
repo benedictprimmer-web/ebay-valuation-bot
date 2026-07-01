@@ -19,7 +19,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Protocol
 
-from .camera import camera_listing_from_title
+from .camera import camera_listing_from_title, parse_camera
 from .models import Card, Listing
 
 GRADE_RE = re.compile(
@@ -261,6 +261,15 @@ class BrowseAPISource:
         if self.identity == "camera":
             # Browse returns ACTIVE listings only -> active-listing proxy for cameras
             # (ADR-011 fallback). Identity is exact-model, resolve-or-skip.
+            # An auction may ALSO offer Buy-It-Now: buyingOptions lists FIXED_PRICE and
+            # `price` carries that BIN figure (currentBidPrice is the live bid).
+            opts = item.get("buyingOptions") or []
+            bin_price = None
+            if "FIXED_PRICE" in opts:
+                try:
+                    bin_price = float((item.get("price") or {}).get("value"))
+                except (TypeError, ValueError):
+                    bin_price = None
             return camera_listing_from_title(
                 title=title,
                 price=value,
@@ -268,6 +277,7 @@ class BrowseAPISource:
                 url=item.get("itemWebUrl", ""),
                 is_auction=bool(item.get("currentBidPrice")),
                 ends_at=item.get("itemEndDate"),
+                bin_price=bin_price,
             )
         parsed = parse_grade(title)
         if not parsed:
@@ -295,6 +305,8 @@ class BrowseAPISource:
 
     def fetch_targets(self) -> list[Listing]:
         window = self.search_cfg.get("ending_within_hours")
+        if self.identity == "camera":
+            return self._fetch_camera_targets(window)
         out: list[Listing] = []
         for query in self.search_cfg["queries"]:
             tokens = [t for t in query.lower().split() if not parse_grade(t)]
@@ -307,6 +319,35 @@ class BrowseAPISource:
                 out.append(lst)
         return out
 
+    def _fetch_camera_targets(self, window) -> list[Listing]:
+        """Auctions ending within `window`, restricted to the EXACT niche model each
+        query is for. A raw "Sony A6000 body" auction search also returns lenses/straps;
+        keeping only listings that match the intended body (plus the body category filter
+        and price floor) means we never value accessories — and comps stay cache hits, so
+        a live run spends 0 sold pulls."""
+        cat_map = self.search_cfg.get("category_ids") or {}
+        floors = (self.cfg.get("valuation") or {}).get("comp_min_price") or {}
+        require_bin = bool(self.search_cfg.get("require_buy_it_now"))
+        out: list[Listing] = []
+        for query in self.search_cfg["queries"]:
+            intended = parse_camera(query)
+            if not intended.resolved:
+                continue
+            category_id = cat_map.get(intended.kind, "") if isinstance(cat_map, dict) else ""
+            for item in self._search(query, category_id=category_id):
+                lst = self._to_listing(item, [])
+                if not lst or not lst.card.matches(intended):
+                    continue  # drop accessories / other models the keyword dragged in
+                if require_bin and lst.bin_price is None:
+                    continue  # keep only auctions that also offer Buy It Now
+                if window and not ends_within(lst.ends_at, window):
+                    continue
+                floor = floors.get(getattr(lst.card, "kind", ""))
+                if floor and lst.price < floor:
+                    continue
+                out.append(lst)
+        return out
+
     def fetch_comps(self, card) -> list[Listing]:
         if self.identity == "camera":
             floors = (self.cfg.get("valuation") or {}).get("comp_min_price") or {}
@@ -314,7 +355,7 @@ class BrowseAPISource:
             category_id = cat_map.get(getattr(card, "kind", ""), "") if isinstance(cat_map, dict) else ""
             out: list[Listing] = []
             for item in self._search(
-                card.label(),
+                card.search_query(),
                 extra_filter="buyingOptions:{FIXED_PRICE|AUCTION}",
                 category_id=category_id,
             ):
@@ -435,15 +476,28 @@ class ThirdPartySource:
     def _parse(self, items: list[dict], endpoint: dict, tokens, is_auction) -> list[Listing]:
         f = endpoint["fields"]
         fx = self._fx_factor(endpoint)
+        # Optional client-side cleaning (applied to cached raw items too -> 0 extra pulls):
+        # drop new/parts conditions and multi-item bundles so the comp distribution
+        # reflects genuine used single bodies, not boxed kits or spares/repair units.
+        excl_cond = [c.lower() for c in endpoint.get("exclude_conditions", [])]
+        excl_kw = [k.lower() for k in endpoint.get("exclude_title_keywords", [])]
         out: list[Listing] = []
         for item in items:
+            title = str(dig(item, f["title"]) or "")
+            low = title.lower()
+            if excl_kw and any(k in low for k in excl_kw):
+                continue
+            if excl_cond and "condition" in f:
+                cond = str(dig(item, f["condition"]) or "").lower()
+                if any(c in cond for c in excl_cond):
+                    continue
             price_raw = dig(item, f["price"])
             try:
                 price = float(price_raw) * fx
             except (TypeError, ValueError):
                 continue
             lst = listing_from_title(
-                title=str(dig(item, f["title"]) or ""),
+                title=title,
                 price=price,
                 listing_id=str(dig(item, f["id"]) or ""),
                 url=str(dig(item, f["url"]) or ""),
@@ -465,7 +519,7 @@ class ThirdPartySource:
 
     def fetch_comps(self, card) -> list[Listing]:
         if self.identity == "camera":
-            query = card.label()
+            query = card.search_query()  # Roman-numeral versions so "A7 II" matches listings
             items = self._get(self.tp["sold"], query)
             comps = self._parse(items, self.tp["sold"], [], False)
             return [c for c in comps if c.card.matches(card)]
@@ -477,11 +531,36 @@ class ThirdPartySource:
         ]
 
 
+class HybridSource:
+    """Current auctions from one source, sold comps from another.
+
+    Built for the cameras lane: live auctions come FREE from eBay's Browse API, while
+    comps come from the cached RapidAPI sold feed (real completed sales, 30-day cache,
+    50/month budget). That keeps live running effectively free — auctions are free and
+    comps are almost always cache hits — instead of valuing against Browse's ACTIVE
+    listings (asking-price proxy). Exposes the same fetch_targets/fetch_comps interface.
+    """
+
+    def __init__(self, live: ListingSource, sold: ListingSource):
+        self._live = live
+        self._sold = sold
+        # surface the sold cache so the scanner / budget reporting can read the ledger
+        self.cache = getattr(sold, "cache", None)
+
+    def fetch_targets(self) -> list[Listing]:
+        return self._live.fetch_targets()
+
+    def fetch_comps(self, card) -> list[Listing]:
+        return self._sold.fetch_comps(card)
+
+
 def get_source(cfg: dict, mode: str, mock_path: str | Path | None = None) -> ListingSource:
     """Factory.
 
     mode 'mock'       — built-in fixture, no keys (testing).
     mode 'thirdparty' — RapidAPI live + sold (default live route, no eBay dev account).
+    mode 'hybrid'     — live auctions from eBay Browse (free) + comps from the cached
+                        RapidAPI sold feed. Needs EBAY_APP_ID/EBAY_CERT_ID + RAPIDAPI_KEY.
     mode 'browse'     — official eBay Browse API (free fallback, needs dev keys).
     """
     if mode == "mock":
@@ -509,4 +588,19 @@ def get_source(cfg: dict, mode: str, mock_path: str | Path | None = None) -> Lis
             cert_id=secret("EBAY_CERT_ID"),
             cfg=cfg,
         )
+    if mode == "hybrid":
+        from .cache import SoldFeedCache
+        from .config import ROOT, secret
+
+        live = BrowseAPISource(
+            app_id=secret("EBAY_APP_ID"),
+            cert_id=secret("EBAY_CERT_ID"),
+            cfg=cfg,
+        )
+        sold = ThirdPartySource(
+            api_key=secret("RAPIDAPI_KEY", required=False),
+            cfg=cfg,
+            cache=SoldFeedCache(ROOT / "data" / "cache"),
+        )
+        return HybridSource(live=live, sold=sold)
     raise ValueError(f"unknown source mode: {mode!r}")

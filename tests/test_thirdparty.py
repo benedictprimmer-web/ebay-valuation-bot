@@ -135,6 +135,116 @@ def test_sold_endpoint_issues_post_with_json_body(monkeypatch):
     assert len(rows) == 3
 
 
+def test_browse_camera_targets_filter_to_model_window_and_capture_bin(monkeypatch):
+    from datetime import datetime, timedelta, timezone
+    from valbot.ebay_client import BrowseAPISource
+
+    cfg = apply_sector(load_config(), "cameras-lenses")
+    src = BrowseAPISource(app_id="x", cert_id="y", cfg=cfg)
+    soon = (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat()
+    late = (datetime.now(timezone.utc) + timedelta(hours=48)).isoformat()
+    items = [
+        {"title": "Sony A6000 body black", "currentBidPrice": {"value": "120"},
+         "price": {"value": "300"}, "buyingOptions": ["AUCTION", "FIXED_PRICE"],
+         "itemId": "1", "itemWebUrl": "u1", "itemEndDate": soon},        # keep, has BIN
+        {"title": "Sony 1000mm telephoto lens", "currentBidPrice": {"value": "90"},
+         "buyingOptions": ["AUCTION"], "itemId": "2", "itemWebUrl": "u2",
+         "itemEndDate": soon},                                           # accessory -> drop
+        {"title": "Sony A6000 body", "currentBidPrice": {"value": "150"},
+         "buyingOptions": ["AUCTION"], "itemId": "3", "itemWebUrl": "u3",
+         "itemEndDate": late},                                           # ends >24h -> drop
+    ]
+    monkeypatch.setattr(src, "_search",
+                        lambda q, extra_filter="", category_id="": items if "A6000" in q else [])
+    targets = src.fetch_targets()
+    assert len(targets) == 1
+    t = targets[0]
+    assert t.card.key() == "sony|body|a6000"  # only the in-window body
+    assert t.price == 120.0                     # current bid
+    assert t.bin_price == 300.0                 # Buy-It-Now captured
+
+
+def test_browse_camera_targets_require_buy_it_now(monkeypatch):
+    from datetime import datetime, timedelta, timezone
+    from valbot.ebay_client import BrowseAPISource
+
+    cfg = apply_sector(load_config(), "cameras-lenses")
+    assert cfg["search"]["require_buy_it_now"] is True  # cameras default
+    src = BrowseAPISource(app_id="x", cert_id="y", cfg=cfg)
+    soon = (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat()
+    items = [
+        {"title": "Sony A6000 body", "currentBidPrice": {"value": "120"},
+         "price": {"value": "300"}, "buyingOptions": ["AUCTION", "FIXED_PRICE"],
+         "itemId": "1", "itemWebUrl": "u1", "itemEndDate": soon},   # has BIN -> keep
+        {"title": "Sony A6000 body", "currentBidPrice": {"value": "110"},
+         "buyingOptions": ["AUCTION"], "itemId": "2", "itemWebUrl": "u2",
+         "itemEndDate": soon},                                       # no BIN -> drop
+    ]
+    monkeypatch.setattr(src, "_search",
+                        lambda q, extra_filter="", category_id="": items if "A6000" in q else [])
+    targets = src.fetch_targets()
+    assert len(targets) == 1 and targets[0].bin_price == 300.0
+
+
+def test_get_alerter_degrades_to_print_without_callmebot(monkeypatch):
+    from valbot.alert import get_alerter
+    monkeypatch.delenv("CALLMEBOT_PHONE", raising=False)
+    monkeypatch.delenv("CALLMEBOT_APIKEY", raising=False)
+    alerter = get_alerter(dry_run=False)  # asked to send, but no secrets
+    assert alerter.dry_run is True         # degrades to print-only, no crash
+
+
+def test_hybrid_source_splits_targets_and_comps():
+    from valbot.ebay_client import HybridSource
+
+    class _Live:
+        def fetch_targets(self):
+            return ["auction1", "auction2"]
+        def fetch_comps(self, card):
+            raise AssertionError("comps must not come from the live source")
+
+    class _Sold:
+        cache = "CACHE"
+        def fetch_targets(self):
+            raise AssertionError("targets must not come from the sold source")
+        def fetch_comps(self, card):
+            return ["comp1"]
+
+    src = HybridSource(live=_Live(), sold=_Sold())
+    assert src.fetch_targets() == ["auction1", "auction2"]  # from Browse (live)
+    assert src.fetch_comps(object()) == ["comp1"]            # from cached sold feed
+    assert src.cache == "CACHE"                              # ledger surfaced for reporting
+
+
+def test_camera_search_query_renders_roman_version():
+    from valbot.camera import parse_camera
+    # the bug that made "Sony A7 II" return 0 comps: model key is a7 2, but the search
+    # term must read "A7 II" to match how sellers title listings.
+    assert parse_camera("Sony A7 II body").search_query() == "Sony A7 II"
+    assert parse_camera("Sony A6000 body").search_query() == "Sony A6000"
+    assert parse_camera("Canon EOS 6D body").search_query() == "Canon 6D"
+
+
+def test_sold_comps_drop_new_parts_and_bundles(monkeypatch):
+    from valbot.camera import parse_camera
+    cfg = apply_sector(load_config(), "cameras-lenses")
+    src = ThirdPartySource(api_key="x", cfg=cfg)
+    resp = {"products": [
+        {"title": "Sony A6000 body only", "sale_price": 250.0, "condition": "Pre-owned",
+         "item_id": "1", "link": "u1"},                                      # keep
+        {"title": "Sony A6000 body", "sale_price": 400.0, "condition": "New",
+         "item_id": "2", "link": "u2"},                                      # new -> drop
+        {"title": "Sony A6000 with lens bundle", "sale_price": 390.0, "condition": "Used",
+         "item_id": "3", "link": "u3"},                                      # bundle -> drop
+        {"title": "Sony A6000 for parts not working", "sale_price": 80.0,
+         "condition": "For parts or not working", "item_id": "4", "link": "u4"},  # parts -> drop
+    ]}
+    import requests
+    monkeypatch.setattr(requests, "post", lambda *a, **k: _FakeResp(resp))
+    comps = src.fetch_comps(parse_camera("Sony A6000 body"))
+    assert [round(c.price) for c in comps] == [250]  # only the clean used body survives
+
+
 def test_cameras_sold_comps_parse_and_filter_by_model(monkeypatch):
     cfg = apply_sector(load_config(), "cameras-lenses")
     src = ThirdPartySource(api_key="rapid-key", cfg=cfg)

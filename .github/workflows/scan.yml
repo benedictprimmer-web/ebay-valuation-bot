@@ -4,6 +4,7 @@ name: scan
 # differentiation. Pull-frugal: a 1-pull smoke first (verifies the field mapping),
 # then the full scan (the smoke model is now cached, so ~5 pulls total). Cache +
 # history are committed back so the 30-day cache and monthly ledger persist.
+# Re-run 2: clean comps (used/no-bundle filter) + A7 II search fix (~1 new pull).
 on:
   workflow_dispatch:
     inputs:

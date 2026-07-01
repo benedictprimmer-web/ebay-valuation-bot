@@ -7,6 +7,7 @@ sending, so the whole pipeline is testable with no key.
 
 from __future__ import annotations
 
+import sys
 from urllib.parse import quote
 
 
@@ -40,8 +41,15 @@ def get_alerter(dry_run: bool = False) -> CallMeBotAlerter:
         return CallMeBotAlerter(phone="", apikey="", dry_run=True)
     from .config import secret
 
-    return CallMeBotAlerter(
-        phone=secret("CALLMEBOT_PHONE"),
-        apikey=secret("CALLMEBOT_APIKEY"),
-        dry_run=False,
-    )
+    # Degrade to print-only if CallMeBot isn't configured yet, rather than crashing.
+    # Lets the hourly schedule run safely before the WhatsApp secrets are added — it
+    # prints alerts to the log, then starts sending the moment the secrets land.
+    phone = secret("CALLMEBOT_PHONE", required=False)
+    apikey = secret("CALLMEBOT_APIKEY", required=False)
+    if not phone or not apikey:
+        print(
+            "[alert] CALLMEBOT_PHONE/APIKEY not set — printing alerts instead of sending.",
+            file=sys.stderr,
+        )
+        return CallMeBotAlerter(phone="", apikey="", dry_run=True)
+    return CallMeBotAlerter(phone=phone, apikey=apikey, dry_run=False)

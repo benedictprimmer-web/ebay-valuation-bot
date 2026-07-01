@@ -177,6 +177,8 @@ sectors:
         profit_floor: 20.0 # learning mode: see more deals, collect data; tighten from outcomes
       search:
         ending_within_hours: 24
+        require_buy_it_now: true  # only surface auctions that ALSO offer Buy It Now
+                                  # (a known price you can snap if it's under your max bid)
         category_ids: {body: "31388", lens: "3323"}  # Browse API allows 1 ID per request
                                                       # 31388 Digital Cameras, 3323 Camera Lenses leaf
                                                       # NOT 78997 (Lenses & Filters parent — includes hoods)
@@ -188,6 +190,14 @@ sectors:
           - "Sony A7 II body"        # £160-280 auction, £320-380 BIN, 20-30/wk
           - "Nikon D610 body"        # £140-240 auction, £280-360 BIN, 15-25/wk (recall stigma)
           - "Fujifilm X-T30 body"    # £150-280 auction, £320-380 BIN, 15-25/wk
+          # High-liquidity entry/prosumer DSLRs — highest sold-comp counts (big n),
+          # so valuations are the most reliable. All clear well under the £250 cap.
+          - "Canon EOS 600D body"    # £80-160, massive sold volume (entry DSLR)
+          - "Canon EOS 700D body"    # £120-220, very high volume
+          - "Nikon D3200 body"       # £70-140, huge volume
+          - "Nikon D5100 body"       # £90-180, high volume
+          - "Nikon D7000 body"       # £120-220, high volume (prosumer)
+          - "Panasonic Lumix G7 body" # £170-270, 4K draw, decent volume
       # SOLD-COMP SOURCE — real UK sold prices via RapidAPI (ADR-011 gap now closed).
       # Provider: "eBay Average Selling Price" (ebay-average-selling-price.p.rapidapi.com,
       # colindaniels/caffeindev). POST /findCompletedItems returns true completed-sale
@@ -205,8 +215,18 @@ sectors:
           # bot's own dispersion gate (not the provider) decides what's too scattered.
           extra_params: {site_id: "3", max_search_results: 60, remove_outliers: false}
           items_path: "products"
-          fields: {title: "title", price: "sale_price", id: "item_id", url: "link"}
+          fields: {title: "title", price: "sale_price", id: "item_id", url: "link", condition: "condition", buying_format: "buying_format"}
           currency: "GBP"
+          # Clean the comps client-side (0 extra pulls — applied to cached raw items too):
+          # drop new/parts conditions and multi-item bundles so the distribution reflects
+          # genuine used single bodies. Substring match, case-insensitive.
+          # NOTE: exclude keywords suit BODY niches; revisit if lens niches are added.
+          exclude_conditions: ["new", "parts", "spares", "faulty", "not working"]
+          # Bundle-specific phrasing only — NOT bare "lens" (that would wrongly drop
+          # legit "body only, no lens" listings). Bundles with an explicit focal length
+          # (e.g. "16-50mm") are already excluded upstream: the parser reads a focal as a
+          # LENS identity, so it never matches a body niche.
+          exclude_title_keywords: ["bundle", "lenses", "with lens", "+ lens", "and lens", "zoom", "kit", "grip", "joblot", "job lot", "twin"]
           # Budget guard (see CLAUDE.md). Sold medians are near-stationary, so cache each
           # model's response for ~a month: a re-run then costs 0 pulls. The monthly ledger
           # refuses live pulls once 50 are spent — 1 pull/model/month => up to 50 models.

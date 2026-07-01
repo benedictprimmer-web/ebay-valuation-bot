@@ -1,0 +1,59 @@
+name: live-cameras
+
+# Value CURRENT camera auctions ending soon (Browse API, free) against the cached
+# sold comps, and fire WhatsApp alerts via CallMeBot. Read-only — never bids. Comps are
+# almost always cache hits, so this barely touches the 50/month sold budget.
+# Runs hourly. Alerts auto-degrade to print-only until the CallMeBot secrets are set,
+# so the schedule is safe to enable now (no premature WhatsApp messages). A manual run
+# with dry_run=true always just prints.
+on:
+  schedule:
+    - cron: "0 * * * *"  # top of every hour
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "force print-only (don't send WhatsApp even if CallMeBot is set)"
+        type: boolean
+        default: false
+      heartbeat:
+        description: "if no opportunity, send a confirmation message (test CallMeBot)"
+        type: boolean
+        default: false
+
+permissions:
+  contents: write
+
+concurrency:
+  group: valbot-live-cameras
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install deps
+        run: pip install -r requirements.txt
+
+      - name: Run live cameras valuation
+        env:
+          EBAY_APP_ID: ${{ secrets.EBAY_APP_ID }}
+          EBAY_CERT_ID: ${{ secrets.EBAY_CERT_ID }}
+          RAPIDAPI_KEY: ${{ secrets.RAPIDAPI_KEY }}
+          CALLMEBOT_PHONE: ${{ secrets.CALLMEBOT_PHONE }}
+          CALLMEBOT_APIKEY: ${{ secrets.CALLMEBOT_APIKEY }}
+        run: |
+          python run.py --mode hybrid --sector cameras-lenses \
+            ${{ (github.event.inputs.dry_run == 'true') && '--dry-run' || ' ' }} \
+            ${{ (github.event.inputs.heartbeat == 'true') && '--heartbeat' || ' ' }}
+
+      - name: Commit updated state + cache
+        run: |
+          git config user.name "valbot"
+          git config user.email "valbot@users.noreply.github.com"
+          git add data/state/alerted.json data/outcomes.json data/cache || true
+          git diff --staged --quiet || git commit -m "valbot: live cameras state + cache [skip ci]"
+          git push || true

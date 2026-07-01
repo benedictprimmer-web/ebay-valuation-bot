@@ -17,6 +17,12 @@ def format_alert(a: Assessment) -> str:
         f"Current bid: £{a.listing.price:.2f}",
         f"MAX BID:     £{a.max_bid:.2f}   (headroom £{a.headroom:.2f})",
         f"Exp. profit: £{a.expected_profit:.2f}  ·  margin {a.margin:.0%}",
+    ]
+    if a.listing.bin_price is not None:
+        # An auction that also offers Buy-It-Now: snap it if the BIN sits under our max bid.
+        snap = "  ← under your max, snap it" if a.listing.bin_price <= a.max_bid else ""
+        lines.append(f"Buy It Now:  £{a.listing.bin_price:.2f}{snap}")
+    lines += [
         "",
         f"Point value:        £{v.point_value:.2f}",
         f"Conservative value: £{v.conservative_value:.2f}",
@@ -37,10 +43,11 @@ def format_summary(assessments: list[Assessment], alerts: list[Assessment]) -> s
     ]
     for a in alerts:
         v = a.valuation
+        bin_tag = f"  [BIN £{a.listing.bin_price:.0f}]" if a.listing.bin_price is not None else ""
         out.append(
             f"  ALERT  {v.card.label()}  cur £{a.listing.price:.2f} "
             f"-> max £{a.max_bid:.2f}  profit £{a.expected_profit:.2f} "
-            f"({a.margin:.0%})  conf {v.confidence_label} n={v.n}"
+            f"({a.margin:.0%})  conf {v.confidence_label} n={v.n}{bin_tag}"
         )
     skipped = [a for a in assessments if not a.is_alert]
     if skipped:

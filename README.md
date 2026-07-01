@@ -1,172 +1,162 @@
-# valbot — eBay valuation bot (read-only)
+# valbot — the eBay bargain finder 🔎📷
 
-Values graded sports cards from active eBay listings and WhatsApps you when one's
-underpriced after every fee. It never bids. You confirm and place every buy yourself.
+**valbot watches eBay for used cameras that are selling for less than they're worth, and sends you a WhatsApp when it finds one.** It never bids or spends money — it just points and says *"this one looks underpriced, here's the most I'd pay."* You decide.
 
-The decisions behind it are locked in [CONTEXT.md](CONTEXT.md) and [docs/adr/](docs/adr).
-This README is how you run it and what you need to plug in.
+Think of it as a friend who has memorised what every used camera actually sells for, sits on eBay 24/7, and taps you on the shoulder the moment a good one is going cheap.
 
-## What it does, in one pass
+---
 
-Poll auctions ending soon, gather comps for each card, value it, gate on confidence,
-work out the most you should pay, rank survivors by expected profit, send a WhatsApp.
-Then log the prediction so you can check it against reality later.
+## The idea in one picture
 
-```
-poll → match comps → value (with uncertainty) → gate → max bid → rank → alert → log
-```
+Some cameras sell for wildly different prices depending on how the listing is written, when it ends, and whether the seller knows what they have. That scatter is the opportunity: buy near the bottom of the range, and the camera is still worth the middle of the range.
 
-## The valuation, and why it's a distribution not a number
+![How scattered each niche's sold prices are](docs/figure-range.svg)
 
-A point estimate hides how sure the bot is. So each card gets a spread, not a single
-figure:
+Every bar above is one camera model, drawn from the **cheapest** to the **dearest** it actually sold for on eBay UK. The orange part is the gap between the cheapest sales and the typical (median) sale — that gap is the room to make money. A Nikon D610 that usually sells for ~£256 has sold for as little as £103. Catch one of those and you're up ~£150 before you've done anything.
 
-- `point_value` = median comp asking price × the sold-to-asking ratio.
-- `dispersion` = a robust spread (MAD by default, IQR optional) so one mad listing
-  can't blow up the number the way standard deviation would.
-- `n` = how many comps backed it.
-- `confidence` = a 0–1 score from `n` and the relative spread. Lots of tight comps
-  scores high. Few scattered ones scores low.
-- `conservative_value` = `point_value − k × dispersion`. This is the number every
-  money decision uses. Never the middle.
+![Where the margin is](docs/figure-edge.svg)
 
-The buy threshold runs off the conservative end:
+The bot hunts in the niches with the **biggest, most reliable** gaps.
+
+---
+
+## How it works, plainly
+
+Every hour, for each camera model it watches, the bot:
+
+1. **Looks at auctions ending in the next 24 hours** (via eBay's official free data feed).
+2. **Compares each one** against what that exact model *actually sold for recently* (real completed-sale prices).
+3. **Works out the most it would pay** — deliberately conservative, after all eBay fees and postage both ways.
+4. **Messages you on WhatsApp** if an auction's current price is below that number, with the max bid and the item link.
 
 ```
-max bid = conservative_value − target profit − sell fees − buyer protection − postage in − postage out
+watch auctions ending soon → compare to real sold prices → work out a safe max bid → WhatsApp you the bargains
 ```
 
-A confident card with tight comps gets a near-full bid. A thin or scattered one gets a
-much lower bid, or no alert at all. Uncertainty isn't a label on the side. It's priced
-straight into what you'd pay.
+It only messages you about auctions that **also have a "Buy It Now"** — so there's always a known price you can grab immediately if it's cheap enough.
 
-An alert fires only when the current price sits at or under the max bid, the margin
-clears ~25%, the profit clears ~£15, and the confidence gate passes (≥8 comps, spread
-under threshold). Every alert shows max bid, point value, conservative value,
-confidence, comp count and spread, so you can see why it's confident and overrule it.
+---
 
-## Run it locally
+## Why it's cautious (and how it "knows what a camera is worth")
+
+The bot never trusts a single price. For each model it builds a **picture of the whole market** and bids against the *low, safe end* of it — not the average. That way, when it's unsure, it simply offers less.
+
+| What it measures | Why it matters |
+|---|---|
+| **How many sales it found** (`n`) | More past sales = more reliable. It ignores models with too few. |
+| **How spread out the prices are** | If a model's prices are all over the place, it's harder to value — so it bids lower or stays quiet. |
+| **A confidence score (0–1)** | Combines the two above. High = lots of tight, agreeing sales. |
+| **Conservative value** | The number every decision uses. It's the *typical* price minus a safety margin for uncertainty — never the middle. |
+
+So a well-understood model with lots of consistent sales gets a near-full bid; a thin or chaotic one gets a low bid or no alert at all. **Uncertainty is built into the price, not bolted on as a warning.**
+
+### How we assess *data* quality
+
+Sold-price data from eBay is messy, so the bot cleans and checks it before trusting a number:
+
+- **It filters out the junk.** Brand-new/boxed items, "for parts/not working" units, and multi-item bundles (a camera *with lenses*) are removed — otherwise they'd fake the price up or down. Example: one niche's raw average was £696 because of lens bundles; cleaned, it's a realistic £429.
+- **It matches the exact model.** A "Sony A6000 body" search that drags in lenses or the wrong model is discarded — it only compares like with like.
+- **It measures scatter, not just averages.** The spread of sold prices *is* the signal for where the bargains are.
+- **It checks itself against reality.** Every alert is logged with its prediction. When a real flip resolves, you note what it actually resold for, and `calibrate.py` reports whether the bot was right and what to nudge. Nothing is trusted blind.
+
+---
+
+## Two data sources — and why it's basically free to run
+
+| Feed | What it's for | Cost |
+|---|---|---|
+| **Sold prices** (RapidAPI) | Knowing what each model is worth | Metered: **50 lookups/month**. Prices barely change week to week, so results are **cached for 30 days** → about **1 lookup per model per month**. |
+| **Live auctions** (eBay Browse API) | Finding what's for sale right now | **Free**, official eBay. No meaningful limit. |
+
+Because the "what's it worth" numbers are cached, the bot can check live auctions **every hour** and still spend only a handful of the 50 monthly lookups. Running it live is essentially free.
+
+---
+
+## What an alert looks like
+
+> 🏷️ **Underpriced listing**
+> Sony A7 II
+>
+> Current bid: **£132.08**
+> **MAX BID: £179.53** (headroom £47.45)
+> Exp. profit: **£122.83** · margin 41%
+> Buy It Now: £210.00
+>
+> Confidence: high (0.76) · n=14 sold comps
+> _Read-only alert. You place the bid._
+
+You get the most you should pay, the expected profit after all fees, how confident the bot is, and a link. You always place the bid yourself.
+
+---
+
+## See the data yourself
+
+- **`python scan.py --sector cameras-lenses`** ranks every niche by how much bargain-room it has (the charts above are generated from this).
+- **`python report.py`** builds a self-contained **HTML dashboard** (`reports/scatter-dashboard.html`) you can open in any browser.
+- Figures for this README regenerate with **`python docs/make_figures.py`**.
+
+---
+
+## Run it yourself
 
 ```bash
 pip install -r requirements.txt
 
-# Test the whole thing on mock data, no keys, prints alerts instead of sending:
+# No keys needed — runs the whole thing on built-in sample data and prints, doesn't send:
 python run.py --mode mock
 
-# Live data + real WhatsApp (needs the secrets below in your environment):
-python run.py --mode thirdparty   # default route, RapidAPI
-python run.py --mode browse       # fallback, official eBay API
+# The live camera route (needs the keys below): free auctions + cached sold prices
+python run.py --mode hybrid --sector cameras-lenses
+
+# Rank the niches by bargain-room (real sold data, cached):
+python scan.py --sector cameras-lenses --mode thirdparty
 ```
 
-Tests:
+Run the tests (86 of them) with `python -m pytest -q`.
 
-```bash
-pip install -r requirements-dev.txt
-python -m pytest tests/ -q
-```
+### The keys you need (one-time)
 
-Mock mode runs the full pipeline against `data/mock_listings.json`. It's built to
-exercise both paths: two cards alert, four get skipped (thin comps, scattered comps,
-over the price cap, no comps). Use it to sanity-check any change to the logic before
-going live.
+It runs on GitHub Actions on a schedule, so the keys live as **repository secrets** (Settings → Secrets and variables → Actions), never in the code:
 
-## Config
+| Secret | What it's for | How to get it |
+|---|---|---|
+| `RAPIDAPI_KEY` | Sold prices | Subscribe to "eBay Average Selling Price" on rapidapi.com |
+| `EBAY_APP_ID` / `EBAY_CERT_ID` | Live auctions | Free eBay developer account at developer.ebay.com |
+| `CALLMEBOT_PHONE` / `CALLMEBOT_APIKEY` | WhatsApp alerts | WhatsApp `+34 644 51 95 23` the text `I allow callmebot to send me messages` |
 
-Everything tunable lives in [config.yaml](config.yaml): the calibration ratio, the
-confidence gate, every fee rate itemised, the floors, the price cap, the search
-queries. The placeholder thresholds (25% margin, £15 profit, £50 cap, 0.85 ratio) are
-starting points to calibrate from logged outcomes, not settled numbers.
+The bot runs **hourly** (`.github/workflows/live-cameras.yml`) and only messages you on a real opportunity. Alerts safely print to the log until CallMeBot is set up, so nothing breaks if you add the keys later. **Kill switch:** disable the workflow in the Actions tab — nothing runs, no money ever moves without you.
 
-## Fee model
+---
 
-Itemised and conservative, confirmed against eBay UK's live rates on 2026-06-16. The
-`seller_type` setting drives the sell side:
+## The two lanes
 
-- Private seller (the default, your account today): £0 final value fees since Oct 2024.
-  Watch for reclassification — eBay and HMRC flag accounts that buy-to-resell regularly
-  and push them onto a business account. If that happens, set `seller_type: business`.
-- Business seller: 12.8% final value fee + £0.40 fixed (orders over £10) + 0.35%
-  regulatory operating fee, with 20% VAT on those fees. VAT-registered? Set
-  `vat_on_fees_pct: 0` since you reclaim it.
-- Buy side: the UK buyer-protection fee, tiered (7% to £20, 4% to £300, 2% above) plus
-  £0.10. Assumed by default to stay conservative. Toggle with `apply_buyer_protection`.
-- Postage both ways, flat per slab.
+valbot started life valuing **graded sports cards** and the same engine now runs **cameras & lenses** (the live lane). Pick one with `--sector`; everything else is shared. Category-specific settings (fees, search terms, price caps) live in [`config.yaml`](config.yaml).
 
-Private-seller £0 sell fees are treated as upside, never assumed. The trading-card 50%
-FVF discount only kicks in at $1,000+, so it doesn't touch anything under the £50 cap.
-
-## What you need to plug in — do these in order
-
-Steps marked **[BEN]** only you can do. The code's built; these connect it.
-
-**1. [BEN] Create the GitHub repo.** Make a private repo, push this whole folder into
-it (CONTEXT.md, docs/adr/, src/, the workflow, all of it).
-
-```bash
-cd "OUTPUTS/eBay Valuation Bot"
-git init && git add . && git commit -m "valbot v1"
-git remote add origin git@github.com:YOURNAME/valbot.git
-git push -u origin main
-```
-
-**2. [BEN] Get a RapidAPI key for an eBay data API.** This is the default route, and it
-skips the eBay developer account entirely. Sign up at rapidapi.com, subscribe to an eBay
-data API that gives live search and sold listings (search "eBay" on RapidAPI — several
-do both), and copy your key. Then open `config.yaml` and set `thirdparty.api_host`, the
-two endpoint `url`s, and the four field paths to match your provider's sample response.
-That mapping is the only provider-specific bit; the rest is done.
-
-Fallback if you'd rather use eBay's official API: skip RapidAPI, get a developer account
-at developer.ebay.com with production App ID + Cert ID, and run `--mode browse`. The
-Browse API needs no user token, just those two keys. Approval can be slow or refused,
-which is why it's the fallback, not the default.
-
-**3. [BEN] CallMeBot activation.** One-time, from your own phone. Add CallMeBot's number
-(+34 644 51 95 23) to your contacts, send it `I allow callmebot to send me messages`,
-and it replies with your personal API key. Full steps: callmebot.com/whatsapp.php.
-
-**4. [BEN] Add the repo secrets.** In the repo: Settings → Secrets and variables →
-Actions → New repository secret. Add four:
-
-| Secret | Value |
-|---|---|
-| `RAPIDAPI_KEY` | your RapidAPI key (step 2) |
-| `CALLMEBOT_PHONE` | your WhatsApp number, e.g. `+447…` |
-| `CALLMEBOT_APIKEY` | the key CallMeBot sent you (step 3) |
-| `EBAY_APP_ID` | only if using the official-API fallback |
-| `EBAY_CERT_ID` | only if using the official-API fallback |
-
-**5. Check it.** In the repo, Actions → valbot → Run workflow → pick `mock`. That proves
-the workflow, the install and the run without spending an API call. Then run it once
-with `thirdparty` once your RapidAPI key is in. The cron then takes over every 20 minutes.
-
-## Going live, carefully
-
-Run it read-only for a week. Alerts fire, you place no bids. As real auctions resolve,
-fill in the `result` fields in `data/outcomes.json` (won/lost, final price, what it
-later resold for). That's the data that calibrates the sold-to-asking ratio and tunes
-the floors. Once the predicted values track reality, the thresholds can loosen.
-
-Kill switch: disable the workflow in the Actions tab. Nothing runs, no money ever moves
-without you.
-
-## Layout
+## What's under the hood
 
 ```
-config.yaml              all tunables
-run.py                   entry point
+config.yaml            every tunable — search terms, fees, thresholds, budget
+run.py                 the hourly live run (find → value → alert)
+scan.py                niche scatter scanner
+report.py              HTML dashboard from the collected data
 src/valbot/
-  valuation.py           the distribution + conservative value
-  fees.py                itemised all-in fee model + max-bid solver
-  threshold.py           gate, floors, builds each assessment
-  ebay_client.py         mock + thirdparty (RapidAPI) + official Browse, one interface
-  alert.py               CallMeBot WhatsApp
-  store.py               alert dedupe state + outcome log
-  pipeline.py            the one pass
+  valuation.py         builds the price distribution + conservative value
+  fees.py              itemised all-in eBay fee model + max-bid solver
+  camera.py            turns a messy listing title into an exact model
+  ebay_client.py       data sources: mock / RapidAPI / eBay Browse / hybrid
+  cache.py             30-day sold-price cache + monthly budget guard
+  alert.py             CallMeBot WhatsApp
+  scan.py              scatter ranking
+  calibrate.py         checks predictions against real outcomes
 data/
-  mock_listings.json     fixture for testing without keys
-  sold_seed.json         hand-recorded solds seeding the ratio
-  outcomes.json          logged predictions, fill in real results to calibrate
-tests/                   valuation, fees, full pipeline
-.github/workflows/valbot.yml   the cron
+  cache/               cached sold prices + the monthly lookup ledger
+  scatter_history.json every scan, over time
+  outcomes.json        logged predictions — fill in real results to calibrate
+.github/workflows/
+  live-cameras.yml     the hourly live camera watcher
+  scan.yml             manual scatter scan
 ```
+
+---
+
+*Read-only by design. valbot finds and explains; you decide and buy. Decisions and rationale are recorded in [CONTEXT.md](CONTEXT.md) and [docs/adr/](docs/adr).*
