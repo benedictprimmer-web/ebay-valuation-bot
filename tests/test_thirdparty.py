@@ -3,9 +3,20 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from valbot.config import load_config  # noqa: E402
+from valbot.config import apply_sector, load_config  # noqa: E402
 from valbot.ebay_client import ThirdPartySource, dig, listing_from_title  # noqa: E402
 from valbot.models import Card  # noqa: E402
+
+
+class _FakeResp:
+    def __init__(self, payload):
+        self._payload = payload
+
+    def raise_for_status(self):
+        pass
+
+    def json(self):
+        return self._payload
 
 
 def test_dig_dotted_path():
@@ -79,3 +90,64 @@ def test_live_endpoint_uses_rapidapi_auth():
     headers = src._headers_for(cfg["thirdparty"]["live"])
     assert headers["X-RapidAPI-Key"] == "rapid-key"
     assert headers["X-RapidAPI-Host"] == cfg["thirdparty"]["api_host"]
+
+
+def _sample_sold_price_response():
+    # ebay-average-selling-price /findCompletedItems shape: aggregate stats at the top,
+    # rows under "products". Sold prices are already GBP for site_id 3.
+    return {
+        "success": True,
+        "average_price": 152.0, "median_price": 150.0,
+        "min_price": 95.0, "max_price": 205.0, "results": 3,
+        "products": [
+            {"title": "Sony A6000 body black", "sale_price": 150.0, "currency": "GBP",
+             "condition": "Used", "buying_format": "Auction", "date_sold": "2026-06-28",
+             "item_id": "p1", "link": "u1"},
+            {"title": "Sony Alpha A6000 mirrorless camera body only", "sale_price": 95.0,
+             "currency": "GBP", "date_sold": "2026-06-27", "item_id": "p2", "link": "u2"},
+            # a lens listing that shouldn't match an A6000 body query
+            {"title": "Sony FE 50mm f1.8 lens", "sale_price": 120.0, "currency": "GBP",
+             "date_sold": "2026-06-26", "item_id": "p3", "link": "u3"},
+        ],
+    }
+
+
+def test_sold_endpoint_issues_post_with_json_body(monkeypatch):
+    # cameras sold feed is method: POST -> _get must POST the keywords in a JSON body.
+    cfg = apply_sector(load_config(), "cameras-lenses")
+    src = ThirdPartySource(api_key="rapid-key", cfg=cfg)
+    captured = {}
+
+    def fake_post(url, headers=None, json=None, timeout=None):
+        captured["url"], captured["json"] = url, json
+        return _FakeResp(_sample_sold_price_response())
+
+    def fake_get(*a, **k):  # guard: the POST endpoint must not fall through to GET
+        raise AssertionError("sold POST endpoint should not use GET")
+
+    import requests
+    monkeypatch.setattr(requests, "post", fake_post)
+    monkeypatch.setattr(requests, "get", fake_get)
+    rows = src._get(cfg["thirdparty"]["sold"], "Sony A6000 body")
+    assert captured["url"].endswith("/findCompletedItems")
+    assert captured["json"]["keywords"] == "Sony A6000 body"
+    assert captured["json"]["site_id"] == "3"  # UK
+    assert len(rows) == 3
+
+
+def test_cameras_sold_comps_parse_and_filter_by_model(monkeypatch):
+    cfg = apply_sector(load_config(), "cameras-lenses")
+    src = ThirdPartySource(api_key="rapid-key", cfg=cfg)
+
+    def fake_post(url, headers=None, json=None, timeout=None):
+        return _FakeResp(_sample_sold_price_response())
+
+    import requests
+    monkeypatch.setattr(requests, "post", fake_post)
+    from valbot.camera import parse_camera
+
+    card = parse_camera("Sony A6000 body")  # CameraItem identity, resolves to sony|body|a6000
+    comps = src.fetch_comps(card)
+    # the two A6000 bodies match; the 50mm lens is filtered out. GBP -> no conversion.
+    assert {round(c.price) for c in comps} == {150, 95}
+    assert all(c.is_auction is False for c in comps)

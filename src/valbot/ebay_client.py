@@ -399,10 +399,15 @@ class ThirdPartySource:
     def _get(self, endpoint: dict, query: str) -> list[dict]:
         import requests
 
-        params = {endpoint["query_param"]: query, **endpoint.get("extra_params", {})}
-        resp = requests.get(
-            endpoint["url"], headers=self._headers_for(endpoint), params=params, timeout=30
-        )
+        # Some sold-price providers take the search term + filters as a JSON POST body
+        # (e.g. ebay-average-selling-price /findCompletedItems) rather than GET params.
+        # `method: POST` in the endpoint config routes here; the field mapping is unchanged.
+        payload = {endpoint["query_param"]: query, **endpoint.get("extra_params", {})}
+        headers = self._headers_for(endpoint)
+        if (endpoint.get("method") or "GET").upper() == "POST":
+            resp = requests.post(endpoint["url"], headers=headers, json=payload, timeout=30)
+        else:
+            resp = requests.get(endpoint["url"], headers=headers, params=payload, timeout=30)
         resp.raise_for_status()
         body = resp.json()
         items = dig(body, endpoint["items_path"]) if endpoint.get("items_path") else body

@@ -162,9 +162,10 @@ sectors:
       category: "cameras-lenses"
       identity: "camera" # exact body/lens model, not grader+grade
       valuation:
-        sold_to_asking_ratio: 0.85 # Browse active-listing proxy (ADR-011); set 1.0 when Apify sold feed is wired
-        # If the sold source falls back to Browse ACTIVE listings (see ADR-011),
-        # drop this toward ~0.85: UK used gear clears under median asking.
+        sold_to_asking_ratio: 1.0 # real SOLD prices via the findCompletedItems feed (no asking-price proxy)
+        # Only drop toward ~0.85 if you fall back to Browse ACTIVE listings (--mode browse,
+        # ADR-011): UK used gear clears under median asking. The thirdparty sold feed below
+        # returns true sold prices, so the ratio sits at 1.0.
         comp_min_price: {body: 80.0, lens: 25.0} # backstop: accessories that slip past category filter
       fees:
         seller_type: "business"
@@ -187,23 +188,22 @@ sectors:
           - "Sony A7 II body"        # £160-280 auction, £320-380 BIN, 20-30/wk
           - "Nikon D610 body"        # £140-240 auction, £280-360 BIN, 15-25/wk (recall stigma)
           - "Fujifilm X-T30 body"    # £150-280 auction, £320-380 BIN, 15-25/wk
-      # SOLD-COMP SOURCE (the open gap — see ADR-011). No clean official UK sold
-      # feed exists; eBay Marketplace Insights stays partner-gated. The endpoint
-      # below is a pluggable scaffold mirroring the cards lane's `thirdparty.sold`.
-      # Pick a provider (Ben's call, it costs), drop its host/paths in, add the key.
-      # GBP-native, country=GB, condition=used. Until then run --mode mock.
+      # SOLD-COMP SOURCE — real UK sold prices via RapidAPI (ADR-011 gap now closed).
+      # Provider: "eBay Average Selling Price" (ebay-average-selling-price.p.rapidapi.com,
+      # colindaniels/caffeindev). POST /findCompletedItems returns true completed-sale
+      # prices plus aggregate stats (average/median/min/max) per query. One RAPIDAPI_KEY,
+      # same secret the live feed uses. site_id 3 = ebay.co.uk (GBP), so no FX conversion.
+      # Marketplace Insights stays partner-gated; this is the working substitute.
       thirdparty:
         sold:
-          # Apify: harvestlab/ebay-scraper — $0.003/result, 13 markets incl. UK.
-          # Auth: Bearer APIFY_TOKEN (not RapidAPI). Requires a new Apify source type
-          # in ebay_client.py — the current thirdparty/sold plumbing is HTTP-only.
-          # Session to wire: POST run-sync to Apify, poll dataset items, filter sold==True.
-          # Confirmed fields (research/niche-cameras-tier-down.md):
-          #   priceValue (float GBP), currency, title, itemId, url, sold (bool), soldDate
-          # Input: {searchQuery: "...", ebayDomain: "ebay.co.uk", categoryId: "31388"}
-          # Once wired: set sold_to_asking_ratio: 1.0 (real sold prices, no proxy needed)
-          actor: "harvestlab/ebay-scraper"  # apify.com/harvestlab/ebay-scraper
-          auth: {scheme: "apify", secret: "APIFY_TOKEN"}
-          extra_params: {ebayDomain: "ebay.co.uk", listingType: "Auction", condition: "Used"}
-          fields: {title: "title", price: "priceValue", id: "itemId", url: "url", sold: "sold", sold_date: "soldDate"}
+          url: "https://ebay-average-selling-price.p.rapidapi.com/findCompletedItems"
+          method: "POST"  # search term + filters ride in a JSON body, not GET params
+          host: "ebay-average-selling-price.p.rapidapi.com"  # per-endpoint RapidAPI host
+          auth: {scheme: "rapidapi", secret: "RAPIDAPI_KEY"}
+          query_param: "keywords"
+          # site_id 3 = UK/GBP. remove_outliers false keeps the real distribution so the
+          # bot's own dispersion gate (not the provider) decides what's too scattered.
+          extra_params: {site_id: "3", max_search_results: 60, remove_outliers: false}
+          items_path: "products"
+          fields: {title: "title", price: "sale_price", id: "item_id", url: "link"}
           currency: "GBP"
