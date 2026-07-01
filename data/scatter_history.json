@@ -1,0 +1,60 @@
+[
+  {
+    "scanned_at": "2026-07-01T15:10:53.735862+00:00",
+    "sector": "cameras-lenses",
+    "rows": [
+      {
+        "query": "Nikon D610 body",
+        "source": "fresh pull",
+        "n": 50,
+        "median": 248.79,
+        "min": 83.25,
+        "max": 419.99,
+        "rel_dispersion": 0.196,
+        "edge_gbp": 165.54,
+        "edge_pct": 0.665,
+        "score": 1.388
+      },
+      {
+        "query": "Canon EOS 6D body",
+        "source": "fresh pull",
+        "n": 27,
+        "median": 215.0,
+        "min": 39.99,
+        "max": 460.0,
+        "rel_dispersion": 0.204,
+        "edge_gbp": 175.01,
+        "edge_pct": 0.814,
+        "score": 1.061
+      },
+      {
+        "query": "Sony A6000 body",
+        "source": "cache",
+        "n": 21,
+        "median": 297.97,
+        "min": 142.0,
+        "max": 422.42,
+        "rel_dispersion": 0.119,
+        "edge_gbp": 155.97,
+        "edge_pct": 0.523,
+        "score": 0.544
+      },
+      {
+        "query": "Fujifilm X-T30 body",
+        "source": "fresh pull",
+        "n": 14,
+        "median": 445.64,
+        "min": 361.42,
+        "max": 719.94,
+        "rel_dispersion": 0.125,
+        "edge_gbp": 84.22,
+        "edge_pct": 0.189,
+        "score": 0.469
+      },
+      {
+        "query": "Sony A7 II body",
+        "source": "fresh pull"
+      }
+    ]
+  }
+]
