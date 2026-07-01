@@ -490,11 +490,36 @@ class ThirdPartySource:
         ]
 
 
+class HybridSource:
+    """Current auctions from one source, sold comps from another.
+
+    Built for the cameras lane: live auctions come FREE from eBay's Browse API, while
+    comps come from the cached RapidAPI sold feed (real completed sales, 30-day cache,
+    50/month budget). That keeps live running effectively free — auctions are free and
+    comps are almost always cache hits — instead of valuing against Browse's ACTIVE
+    listings (asking-price proxy). Exposes the same fetch_targets/fetch_comps interface.
+    """
+
+    def __init__(self, live: ListingSource, sold: ListingSource):
+        self._live = live
+        self._sold = sold
+        # surface the sold cache so the scanner / budget reporting can read the ledger
+        self.cache = getattr(sold, "cache", None)
+
+    def fetch_targets(self) -> list[Listing]:
+        return self._live.fetch_targets()
+
+    def fetch_comps(self, card) -> list[Listing]:
+        return self._sold.fetch_comps(card)
+
+
 def get_source(cfg: dict, mode: str, mock_path: str | Path | None = None) -> ListingSource:
     """Factory.
 
     mode 'mock'       — built-in fixture, no keys (testing).
     mode 'thirdparty' — RapidAPI live + sold (default live route, no eBay dev account).
+    mode 'hybrid'     — live auctions from eBay Browse (free) + comps from the cached
+                        RapidAPI sold feed. Needs EBAY_APP_ID/EBAY_CERT_ID + RAPIDAPI_KEY.
     mode 'browse'     — official eBay Browse API (free fallback, needs dev keys).
     """
     if mode == "mock":
@@ -522,4 +547,19 @@ def get_source(cfg: dict, mode: str, mock_path: str | Path | None = None) -> Lis
             cert_id=secret("EBAY_CERT_ID"),
             cfg=cfg,
         )
+    if mode == "hybrid":
+        from .cache import SoldFeedCache
+        from .config import ROOT, secret
+
+        live = BrowseAPISource(
+            app_id=secret("EBAY_APP_ID"),
+            cert_id=secret("EBAY_CERT_ID"),
+            cfg=cfg,
+        )
+        sold = ThirdPartySource(
+            api_key=secret("RAPIDAPI_KEY", required=False),
+            cfg=cfg,
+            cache=SoldFeedCache(ROOT / "data" / "cache"),
+        )
+        return HybridSource(live=live, sold=sold)
     raise ValueError(f"unknown source mode: {mode!r}")

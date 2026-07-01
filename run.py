@@ -33,9 +33,10 @@ def main() -> int:
     p = argparse.ArgumentParser(description="eBay valuation bot (read-only)")
     p.add_argument(
         "--mode",
-        choices=["mock", "thirdparty", "browse"],
+        choices=["mock", "thirdparty", "browse", "hybrid"],
         default="mock",
-        help="mock=fixture; thirdparty=RapidAPI (default live); browse=official eBay API",
+        help="mock=fixture; thirdparty=RapidAPI; browse=eBay API; "
+             "hybrid=Browse auctions + cached sold comps",
     )
     p.add_argument("--dry-run", action="store_true", help="print alerts, don't send")
     p.add_argument("--config", default=None, help="path to config.yaml")

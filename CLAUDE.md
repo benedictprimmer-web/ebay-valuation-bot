@@ -22,6 +22,17 @@
   niches by sold-price differentiation (rel-dispersion × √n). Warm cache = 0 pulls.
   Appends to `data/scatter_history.json`.
 
+## Two feeds — only ONE is metered
+- SOLD comps (ebay-average-selling-price, 50/month) = valuation. Cached 30 days, so
+  ~1 pull/model/month. The 5 camera niches = ~5 pulls/month.
+- LIVE current auctions = a SEPARATE feed with its own quota. `--mode hybrid` gets these
+  FREE from eBay Browse (EBAY_APP_ID/EBAY_CERT_ID) and values them against the cached sold
+  comps. Running live every 20 min is ~free on the 50 budget: comps are cache hits.
+- Modes: mock | thirdparty (RapidAPI live+sold) | browse (eBay live+active proxy) |
+  hybrid (Browse auctions + cached sold comps — the cameras live route).
+- Workflows: valbot.yml (cards cron), scan.yml (manual scatter scan),
+  live-cameras.yml (manual hybrid run; dry_run input prints alerts without CallMeBot).
+
 ## Secrets
 - The workflow reads env `RAPIDAPI_KEY` from `secrets.RAPIDAPI_KEY` (valbot.yml). One RapidAPI
   account key works across all subscribed APIs, so the live + sold feeds share it. The repo

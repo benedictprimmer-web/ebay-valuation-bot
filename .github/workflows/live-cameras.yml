@@ -1,0 +1,51 @@
+name: live-cameras
+
+# Value CURRENT camera auctions ending soon (Browse API, free) against the cached
+# sold comps, and (unless dry_run) fire WhatsApp alerts via CallMeBot. Read-only —
+# never bids. Comps are almost always cache hits, so this barely touches the 50/month
+# sold budget. dry_run=true prints the alerts to the log so you can see real current
+# data BEFORE CallMeBot is set up.
+on:
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "print alerts instead of sending (see data with no CallMeBot needed)"
+        type: boolean
+        default: true
+
+permissions:
+  contents: write
+
+concurrency:
+  group: valbot-live-cameras
+  cancel-in-progress: false
+
+jobs:
+  run:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install deps
+        run: pip install -r requirements.txt
+
+      - name: Run live cameras valuation
+        env:
+          EBAY_APP_ID: ${{ secrets.EBAY_APP_ID }}
+          EBAY_CERT_ID: ${{ secrets.EBAY_CERT_ID }}
+          RAPIDAPI_KEY: ${{ secrets.RAPIDAPI_KEY }}
+          CALLMEBOT_PHONE: ${{ secrets.CALLMEBOT_PHONE }}
+          CALLMEBOT_APIKEY: ${{ secrets.CALLMEBOT_APIKEY }}
+        run: |
+          python run.py --mode hybrid --sector cameras-lenses \
+            ${{ (github.event.inputs.dry_run == 'false') && ' ' || '--dry-run' }}
+
+      - name: Commit updated state + cache
+        run: |
+          git config user.name "valbot"
+          git config user.email "valbot@users.noreply.github.com"
+          git add data/state/alerted.json data/outcomes.json data/cache || true
+          git diff --staged --quiet || git commit -m "valbot: live cameras state + cache [skip ci]"
+          git push || true

@@ -135,6 +135,28 @@ def test_sold_endpoint_issues_post_with_json_body(monkeypatch):
     assert len(rows) == 3
 
 
+def test_hybrid_source_splits_targets_and_comps():
+    from valbot.ebay_client import HybridSource
+
+    class _Live:
+        def fetch_targets(self):
+            return ["auction1", "auction2"]
+        def fetch_comps(self, card):
+            raise AssertionError("comps must not come from the live source")
+
+    class _Sold:
+        cache = "CACHE"
+        def fetch_targets(self):
+            raise AssertionError("targets must not come from the sold source")
+        def fetch_comps(self, card):
+            return ["comp1"]
+
+    src = HybridSource(live=_Live(), sold=_Sold())
+    assert src.fetch_targets() == ["auction1", "auction2"]  # from Browse (live)
+    assert src.fetch_comps(object()) == ["comp1"]            # from cached sold feed
+    assert src.cache == "CACHE"                              # ledger surfaced for reporting
+
+
 def test_camera_search_query_renders_roman_version():
     from valbot.camera import parse_camera
     # the bug that made "Sony A7 II" return 0 comps: model key is a7 2, but the search
