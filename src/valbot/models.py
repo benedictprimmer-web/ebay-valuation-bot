@@ -40,11 +40,12 @@ class Listing:
 
     listing_id: str
     card: Card
-    price: float  # GBP
+    price: float  # GBP — asking (fixed-price comp) or current bid (auction)
     url: str
     is_auction: bool = False
     ends_at: Optional[str] = None  # ISO8601, auctions only
     postage_in: Optional[float] = None  # seller's stated inbound postage, if known
+    bin_price: Optional[float] = None  # Buy-It-Now price, if the auction also offers one
 
     def matches(self, card: Card) -> bool:
         return self.card.key() == card.key()

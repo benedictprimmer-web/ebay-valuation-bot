@@ -19,7 +19,7 @@ from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Protocol
 
-from .camera import camera_listing_from_title
+from .camera import camera_listing_from_title, parse_camera
 from .models import Card, Listing
 
 GRADE_RE = re.compile(
@@ -261,6 +261,15 @@ class BrowseAPISource:
         if self.identity == "camera":
             # Browse returns ACTIVE listings only -> active-listing proxy for cameras
             # (ADR-011 fallback). Identity is exact-model, resolve-or-skip.
+            # An auction may ALSO offer Buy-It-Now: buyingOptions lists FIXED_PRICE and
+            # `price` carries that BIN figure (currentBidPrice is the live bid).
+            opts = item.get("buyingOptions") or []
+            bin_price = None
+            if "FIXED_PRICE" in opts:
+                try:
+                    bin_price = float((item.get("price") or {}).get("value"))
+                except (TypeError, ValueError):
+                    bin_price = None
             return camera_listing_from_title(
                 title=title,
                 price=value,
@@ -268,6 +277,7 @@ class BrowseAPISource:
                 url=item.get("itemWebUrl", ""),
                 is_auction=bool(item.get("currentBidPrice")),
                 ends_at=item.get("itemEndDate"),
+                bin_price=bin_price,
             )
         parsed = parse_grade(title)
         if not parsed:
@@ -295,6 +305,8 @@ class BrowseAPISource:
 
     def fetch_targets(self) -> list[Listing]:
         window = self.search_cfg.get("ending_within_hours")
+        if self.identity == "camera":
+            return self._fetch_camera_targets(window)
         out: list[Listing] = []
         for query in self.search_cfg["queries"]:
             tokens = [t for t in query.lower().split() if not parse_grade(t)]
@@ -303,6 +315,32 @@ class BrowseAPISource:
                 if not lst:
                     continue
                 if window and not ends_within(lst.ends_at, window):
+                    continue
+                out.append(lst)
+        return out
+
+    def _fetch_camera_targets(self, window) -> list[Listing]:
+        """Auctions ending within `window`, restricted to the EXACT niche model each
+        query is for. A raw "Sony A6000 body" auction search also returns lenses/straps;
+        keeping only listings that match the intended body (plus the body category filter
+        and price floor) means we never value accessories — and comps stay cache hits, so
+        a live run spends 0 sold pulls."""
+        cat_map = self.search_cfg.get("category_ids") or {}
+        floors = (self.cfg.get("valuation") or {}).get("comp_min_price") or {}
+        out: list[Listing] = []
+        for query in self.search_cfg["queries"]:
+            intended = parse_camera(query)
+            if not intended.resolved:
+                continue
+            category_id = cat_map.get(intended.kind, "") if isinstance(cat_map, dict) else ""
+            for item in self._search(query, category_id=category_id):
+                lst = self._to_listing(item, [])
+                if not lst or not lst.card.matches(intended):
+                    continue  # drop accessories / other models the keyword dragged in
+                if window and not ends_within(lst.ends_at, window):
+                    continue
+                floor = floors.get(getattr(lst.card, "kind", ""))
+                if floor and lst.price < floor:
                     continue
                 out.append(lst)
         return out

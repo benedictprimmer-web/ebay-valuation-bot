@@ -135,6 +135,35 @@ def test_sold_endpoint_issues_post_with_json_body(monkeypatch):
     assert len(rows) == 3
 
 
+def test_browse_camera_targets_filter_to_model_window_and_capture_bin(monkeypatch):
+    from datetime import datetime, timedelta, timezone
+    from valbot.ebay_client import BrowseAPISource
+
+    cfg = apply_sector(load_config(), "cameras-lenses")
+    src = BrowseAPISource(app_id="x", cert_id="y", cfg=cfg)
+    soon = (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat()
+    late = (datetime.now(timezone.utc) + timedelta(hours=48)).isoformat()
+    items = [
+        {"title": "Sony A6000 body black", "currentBidPrice": {"value": "120"},
+         "price": {"value": "300"}, "buyingOptions": ["AUCTION", "FIXED_PRICE"],
+         "itemId": "1", "itemWebUrl": "u1", "itemEndDate": soon},        # keep, has BIN
+        {"title": "Sony 1000mm telephoto lens", "currentBidPrice": {"value": "90"},
+         "buyingOptions": ["AUCTION"], "itemId": "2", "itemWebUrl": "u2",
+         "itemEndDate": soon},                                           # accessory -> drop
+        {"title": "Sony A6000 body", "currentBidPrice": {"value": "150"},
+         "buyingOptions": ["AUCTION"], "itemId": "3", "itemWebUrl": "u3",
+         "itemEndDate": late},                                           # ends >24h -> drop
+    ]
+    monkeypatch.setattr(src, "_search",
+                        lambda q, extra_filter="", category_id="": items if "A6000" in q else [])
+    targets = src.fetch_targets()
+    assert len(targets) == 1
+    t = targets[0]
+    assert t.card.key() == "sony|body|a6000"  # only the in-window body
+    assert t.price == 120.0                     # current bid
+    assert t.bin_price == 300.0                 # Buy-It-Now captured
+
+
 def test_hybrid_source_splits_targets_and_comps():
     from valbot.ebay_client import HybridSource
 
