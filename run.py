@@ -42,6 +42,11 @@ def main() -> int:
     p.add_argument("--config", default=None, help="path to config.yaml")
     p.add_argument("--mock-data", default=None, help="path to mock listings JSON")
     p.add_argument("--sector", default=None, help="sector profile (default: active_sector)")
+    p.add_argument(
+        "--heartbeat",
+        action="store_true",
+        help="if no opportunity alerts fire, send one confirmation message instead",
+    )
     args = p.parse_args()
 
     cfg = apply_sector(load_config(args.config), args.sector)
@@ -55,6 +60,16 @@ def main() -> int:
     result = run_pipeline(cfg, source, alerter, store)
     print(format_summary(result.assessments, result.alerts))
     print(f"Sent {result.sent} alert(s)." + (" (dry-run)" if dry else ""))
+
+    # Heartbeat: real alerts already went out for any opportunity; if there were none,
+    # send one confirmation so you know the run happened and CallMeBot is wired.
+    if args.heartbeat and result.sent == 0:
+        alerter.send(
+            f"🤖 valbot test — {cfg.get('active_sector')}: assessed "
+            f"{len(result.assessments)} auction(s), no opportunities right now. "
+            "CallMeBot is working."
+        )
+        print("Sent heartbeat confirmation message.")
     return 0
 
 
