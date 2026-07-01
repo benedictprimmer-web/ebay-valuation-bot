@@ -176,7 +176,7 @@ sectors:
         price_cap: 250.0 # learning mode: lower risk, more volume; raise once niches confirmed
         profit_floor: 20.0 # learning mode: see more deals, collect data; tighten from outcomes
       search:
-        ending_within_hours: 240  # DEMO (temp): widen to ~10 days to see live valuations; revert to 24
+        ending_within_hours: 24
         category_ids: {body: "31388", lens: "3323"}  # Browse API allows 1 ID per request
                                                       # 31388 Digital Cameras, 3323 Camera Lenses leaf
                                                       # NOT 78997 (Lenses & Filters parent — includes hoods)
