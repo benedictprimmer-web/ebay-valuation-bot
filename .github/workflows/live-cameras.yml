@@ -12,6 +12,11 @@ on:
         description: "print alerts instead of sending (see data with no CallMeBot needed)"
         type: boolean
         default: true
+  # Temporary: lets the bot kick a dry-run by push (workflow_dispatch needs a scope the
+  # bot token lacks). Removed once live alerting is confirmed.
+  push:
+    branches: [claude/last-change-8xv4fc]
+    paths: [".github/workflows/live-cameras.yml"]
 
 permissions:
   contents: write
