@@ -1,0 +1,55 @@
+name: scan
+
+# Manual scatter scan against the REAL sold feed. Ranks camera niches by sold-price
+# differentiation. Pull-frugal: a 1-pull smoke first (verifies the field mapping),
+# then the full scan (the smoke model is now cached, so ~5 pulls total). Cache +
+# history are committed back so the 30-day cache and monthly ledger persist.
+on:
+  workflow_dispatch:
+    inputs:
+      sector:
+        description: "sector to scan"
+        default: "cameras-lenses"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: valbot-scan
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install deps
+        run: pip install -r requirements.txt
+
+      - name: Smoke (1 pull, verifies field mapping)
+        env:
+          RAPIDAPI_KEY: ${{ secrets.RAPIDAPI_KEY }}
+        run: |
+          python targets.py \
+            --watchlist data/watchlist.smoke-a6000.csv \
+            --sector "${{ github.event.inputs.sector || 'cameras-lenses' }}" \
+            --mode thirdparty
+
+      - name: Scatter scan (real sold comps, cached)
+        env:
+          RAPIDAPI_KEY: ${{ secrets.RAPIDAPI_KEY }}
+        run: |
+          python scan.py \
+            --sector "${{ github.event.inputs.sector || 'cameras-lenses' }}" \
+            --mode thirdparty
+
+      - name: Commit cache + scatter history
+        run: |
+          git config user.name "valbot"
+          git config user.email "valbot@users.noreply.github.com"
+          git add data/cache data/scatter_history.json || true
+          git diff --staged --quiet || git commit -m "valbot: scatter scan results + cache [skip ci]"
+          git push || true

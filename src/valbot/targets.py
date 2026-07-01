@@ -16,9 +16,11 @@ from __future__ import annotations
 
 import csv
 import json
+import sys
 from dataclasses import dataclass
 from pathlib import Path
 
+from .cache import BudgetExceeded
 from .camera import parse_camera
 from .ebay_client import ListingSource
 from .models import Assessment, Card, Listing
@@ -147,7 +149,11 @@ def load_watchlist(path: str | Path, identity: str = "card") -> list[TargetInput
 def assess_target(target: TargetInput, source: ListingSource, cfg: dict) -> TargetResult:
     """Value one watched card against sold comps and run it through the same
     gate/fee/threshold logic as the live pipeline."""
-    comps = source.fetch_comps(target.card)
+    try:
+        comps = source.fetch_comps(target.card)
+    except BudgetExceeded as e:
+        print(f"[budget] {e}", file=sys.stderr)
+        comps = []  # no fresh comps -> valuation None -> "NO DATA", no crash
     valuation = value_card(target.card, comps, cfg["valuation"])
     # No live price -> price 0.0 so max_bid/confidence still compute; the verdict
     # and formatter ignore price-dependent fields when current_price is None.

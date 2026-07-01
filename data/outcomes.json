@@ -142,5 +142,77 @@
       "realised_profit": null,
       "notes": null
     }
+  },
+  {
+    "logged_at": "2026-07-01T15:07:59.046788+00:00",
+    "listing_id": "A1",
+    "url": "https://www.ebay.co.uk/itm/A1",
+    "card": "Erling Haaland \u2014 Topps Chrome base PSA 10",
+    "current_price": 22.0,
+    "ends_at": "2026-06-16T20:00:00Z",
+    "prediction": {
+      "max_bid": 47.12,
+      "point_value": 95.0,
+      "conservative_value": 93.0,
+      "expected_profit": 49.38,
+      "margin": 0.531,
+      "confidence": 0.702,
+      "n_comps": 11,
+      "rel_dispersion": 0.0211,
+      "ratio_used": 1.0
+    },
+    "fees": {
+      "sell_fvf": 10.54,
+      "sell_regulatory": 0.33,
+      "sell_vat_on_fees": 2.17,
+      "sell_total": 13.04,
+      "buyer_protection": 1.58,
+      "postage_in": 3.5,
+      "postage_out": 3.5,
+      "required_profit": 23.25
+    },
+    "result": {
+      "won": null,
+      "final_price": null,
+      "resold_price": null,
+      "realised_profit": null,
+      "notes": null
+    }
+  },
+  {
+    "logged_at": "2026-07-01T15:07:59.047851+00:00",
+    "listing_id": "F1",
+    "url": "https://www.ebay.co.uk/itm/F1",
+    "card": "Jude Bellingham \u2014 Prizm base PSA 9",
+    "current_price": 18.0,
+    "ends_at": "2026-06-16T19:30:00Z",
+    "prediction": {
+      "max_bid": 32.35,
+      "point_value": 70.0,
+      "conservative_value": 68.0,
+      "expected_profit": 31.98,
+      "margin": 0.4703,
+      "confidence": 0.566,
+      "n_comps": 9,
+      "rel_dispersion": 0.0286,
+      "ratio_used": 1.0
+    },
+    "fees": {
+      "sell_fvf": 7.81,
+      "sell_regulatory": 0.24,
+      "sell_vat_on_fees": 1.61,
+      "sell_total": 9.66,
+      "buyer_protection": 1.36,
+      "postage_in": 3.5,
+      "postage_out": 3.5,
+      "required_profit": 17.0
+    },
+    "result": {
+      "won": null,
+      "final_price": null,
+      "resold_price": null,
+      "realised_profit": null,
+      "notes": null
+    }
   }
 ]

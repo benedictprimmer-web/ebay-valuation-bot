@@ -354,12 +354,15 @@ class ThirdPartySource:
     provider's sample response once, then it just runs.
     """
 
-    def __init__(self, api_key: str | None = None, cfg: dict = None):
+    def __init__(self, api_key: str | None = None, cfg: dict = None, cache=None):
         self.api_key = api_key  # RapidAPI key, when injected (tests / single-provider)
         self.cfg = cfg
         self.tp = cfg["thirdparty"]
         self.search_cfg = cfg["search"]
         self.identity = cfg.get("identity", "card")
+        # Optional SoldFeedCache: caches metered endpoints (cache_days) and enforces
+        # their monthly_pull_budget. None in tests/mock -> every call hits the network.
+        self.cache = cache
 
     def _auth_for(self, endpoint: dict) -> dict:
         """Auth config for an endpoint, falling back to the provider default (RapidAPI)."""
@@ -399,14 +402,35 @@ class ThirdPartySource:
     def _get(self, endpoint: dict, query: str) -> list[dict]:
         import requests
 
-        params = {endpoint["query_param"]: query, **endpoint.get("extra_params", {})}
-        resp = requests.get(
-            endpoint["url"], headers=self._headers_for(endpoint), params=params, timeout=30
-        )
+        # Metered endpoints opt into caching + budget via `cache_days`. A fresh cache
+        # hit returns with zero network + zero pulls; a miss checks the monthly budget
+        # BEFORE spending a pull (raises BudgetExceeded once it's gone), then records it.
+        cache_days = endpoint.get("cache_days")
+        cached = self.cache.get(endpoint["url"], query, cache_days) if (
+            self.cache and cache_days
+        ) else None
+        if cached is not None:
+            return cached
+        if self.cache and cache_days:
+            self.cache.check_budget(endpoint.get("monthly_pull_budget"))
+
+        # Some sold-price providers take the search term + filters as a JSON POST body
+        # (e.g. ebay-average-selling-price /findCompletedItems) rather than GET params.
+        # `method: POST` in the endpoint config routes here; the field mapping is unchanged.
+        payload = {endpoint["query_param"]: query, **endpoint.get("extra_params", {})}
+        headers = self._headers_for(endpoint)
+        if (endpoint.get("method") or "GET").upper() == "POST":
+            resp = requests.post(endpoint["url"], headers=headers, json=payload, timeout=30)
+        else:
+            resp = requests.get(endpoint["url"], headers=headers, params=payload, timeout=30)
         resp.raise_for_status()
         body = resp.json()
         items = dig(body, endpoint["items_path"]) if endpoint.get("items_path") else body
-        return items or []
+        items = items or []
+        if self.cache and cache_days:
+            self.cache.record_pull()
+            self.cache.put(endpoint["url"], query, items)
+        return items
 
     def _parse(self, items: list[dict], endpoint: dict, tokens, is_auction) -> list[Listing]:
         f = endpoint["fields"]
@@ -466,11 +490,17 @@ def get_source(cfg: dict, mode: str, mock_path: str | Path | None = None) -> Lis
         path = mock_path or (ROOT / "data" / "mock_listings.json")
         return MockSource(path)
     if mode == "thirdparty":
-        from .config import secret
+        from .cache import SoldFeedCache
+        from .config import ROOT, secret
 
         # RapidAPI key (live source) is optional here; the sold source uses its own key.
-        # Each endpoint resolves the key it needs when first called.
-        return ThirdPartySource(api_key=secret("RAPIDAPI_KEY", required=False), cfg=cfg)
+        # Each endpoint resolves the key it needs when first called. The cache backs the
+        # metered sold feed (cache_days / monthly_pull_budget in config) — see cache.py.
+        return ThirdPartySource(
+            api_key=secret("RAPIDAPI_KEY", required=False),
+            cfg=cfg,
+            cache=SoldFeedCache(ROOT / "data" / "cache"),
+        )
     if mode == "browse":
         from .config import secret
 
