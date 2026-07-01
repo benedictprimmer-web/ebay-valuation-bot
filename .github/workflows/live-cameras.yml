@@ -19,6 +19,10 @@ on:
         description: "if no opportunity, send a confirmation message (test CallMeBot)"
         type: boolean
         default: false
+  # Temporary: one-off push-triggered test run. Removed right after.
+  push:
+    branches: [claude/last-change-8xv4fc]
+    paths: [".github/workflows/live-cameras.yml"]
 
 permissions:
   contents: write
@@ -46,7 +50,7 @@ jobs:
           CALLMEBOT_PHONE: ${{ secrets.CALLMEBOT_PHONE }}
           CALLMEBOT_APIKEY: ${{ secrets.CALLMEBOT_APIKEY }}
         run: |
-          python run.py --mode hybrid --sector cameras-lenses \
+          python run.py --mode hybrid --sector cameras-lenses --heartbeat \
             ${{ (github.event.inputs.dry_run == 'true') && '--dry-run' || ' ' }} \
             ${{ (github.event.inputs.heartbeat == 'true') && '--heartbeat' || ' ' }}
 
