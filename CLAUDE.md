@@ -12,8 +12,8 @@
   and run the sold feed manually / on-demand, not on the 20-min schedule.
 
 ## Secrets
-- The workflow maps env `RAPIDAPI_KEY` from `secrets.EBAY_LIVE_API` (valbot.yml). One RapidAPI
-  account key works across all subscribed APIs, so live + sold can share it — but the repo
-  secret NAME the workflow reads is `EBAY_LIVE_API`, not `RAPIDAPI_KEY`. Keep these in sync.
+- The workflow reads env `RAPIDAPI_KEY` from `secrets.RAPIDAPI_KEY` (valbot.yml). One RapidAPI
+  account key works across all subscribed APIs, so the live + sold feeds share it. The repo
+  secret must be named `RAPIDAPI_KEY` (matches config `secret("RAPIDAPI_KEY")` and README).
 </content>
 </invoke>
