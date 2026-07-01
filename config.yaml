@@ -177,6 +177,8 @@ sectors:
         profit_floor: 20.0 # learning mode: see more deals, collect data; tighten from outcomes
       search:
         ending_within_hours: 24
+        require_buy_it_now: true  # only surface auctions that ALSO offer Buy It Now
+                                  # (a known price you can snap if it's under your max bid)
         category_ids: {body: "31388", lens: "3323"}  # Browse API allows 1 ID per request
                                                       # 31388 Digital Cameras, 3323 Camera Lenses leaf
                                                       # NOT 78997 (Lenses & Filters parent — includes hoods)

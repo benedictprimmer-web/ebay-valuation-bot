@@ -164,6 +164,36 @@ def test_browse_camera_targets_filter_to_model_window_and_capture_bin(monkeypatc
     assert t.bin_price == 300.0                 # Buy-It-Now captured
 
 
+def test_browse_camera_targets_require_buy_it_now(monkeypatch):
+    from datetime import datetime, timedelta, timezone
+    from valbot.ebay_client import BrowseAPISource
+
+    cfg = apply_sector(load_config(), "cameras-lenses")
+    assert cfg["search"]["require_buy_it_now"] is True  # cameras default
+    src = BrowseAPISource(app_id="x", cert_id="y", cfg=cfg)
+    soon = (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat()
+    items = [
+        {"title": "Sony A6000 body", "currentBidPrice": {"value": "120"},
+         "price": {"value": "300"}, "buyingOptions": ["AUCTION", "FIXED_PRICE"],
+         "itemId": "1", "itemWebUrl": "u1", "itemEndDate": soon},   # has BIN -> keep
+        {"title": "Sony A6000 body", "currentBidPrice": {"value": "110"},
+         "buyingOptions": ["AUCTION"], "itemId": "2", "itemWebUrl": "u2",
+         "itemEndDate": soon},                                       # no BIN -> drop
+    ]
+    monkeypatch.setattr(src, "_search",
+                        lambda q, extra_filter="", category_id="": items if "A6000" in q else [])
+    targets = src.fetch_targets()
+    assert len(targets) == 1 and targets[0].bin_price == 300.0
+
+
+def test_get_alerter_degrades_to_print_without_callmebot(monkeypatch):
+    from valbot.alert import get_alerter
+    monkeypatch.delenv("CALLMEBOT_PHONE", raising=False)
+    monkeypatch.delenv("CALLMEBOT_APIKEY", raising=False)
+    alerter = get_alerter(dry_run=False)  # asked to send, but no secrets
+    assert alerter.dry_run is True         # degrades to print-only, no crash
+
+
 def test_hybrid_source_splits_targets_and_comps():
     from valbot.ebay_client import HybridSource
 

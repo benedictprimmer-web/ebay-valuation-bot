@@ -327,6 +327,7 @@ class BrowseAPISource:
         a live run spends 0 sold pulls."""
         cat_map = self.search_cfg.get("category_ids") or {}
         floors = (self.cfg.get("valuation") or {}).get("comp_min_price") or {}
+        require_bin = bool(self.search_cfg.get("require_buy_it_now"))
         out: list[Listing] = []
         for query in self.search_cfg["queries"]:
             intended = parse_camera(query)
@@ -337,6 +338,8 @@ class BrowseAPISource:
                 lst = self._to_listing(item, [])
                 if not lst or not lst.card.matches(intended):
                     continue  # drop accessories / other models the keyword dragged in
+                if require_bin and lst.bin_price is None:
+                    continue  # keep only auctions that also offer Buy It Now
                 if window and not ends_within(lst.ends_at, window):
                     continue
                 floor = floors.get(getattr(lst.card, "kind", ""))

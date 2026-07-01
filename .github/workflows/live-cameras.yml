@@ -1,17 +1,20 @@
 name: live-cameras
 
 # Value CURRENT camera auctions ending soon (Browse API, free) against the cached
-# sold comps, and (unless dry_run) fire WhatsApp alerts via CallMeBot. Read-only —
-# never bids. Comps are almost always cache hits, so this barely touches the 50/month
-# sold budget. dry_run=true prints the alerts to the log so you can see real current
-# data BEFORE CallMeBot is set up.
+# sold comps, and fire WhatsApp alerts via CallMeBot. Read-only — never bids. Comps are
+# almost always cache hits, so this barely touches the 50/month sold budget.
+# Runs hourly. Alerts auto-degrade to print-only until the CallMeBot secrets are set,
+# so the schedule is safe to enable now (no premature WhatsApp messages). A manual run
+# with dry_run=true always just prints.
 on:
+  schedule:
+    - cron: "0 * * * *"  # top of every hour
   workflow_dispatch:
     inputs:
       dry_run:
-        description: "print alerts instead of sending (see data with no CallMeBot needed)"
+        description: "force print-only (don't send WhatsApp even if CallMeBot is set)"
         type: boolean
-        default: true
+        default: false
 
 permissions:
   contents: write
@@ -40,7 +43,7 @@ jobs:
           CALLMEBOT_APIKEY: ${{ secrets.CALLMEBOT_APIKEY }}
         run: |
           python run.py --mode hybrid --sector cameras-lenses \
-            ${{ (github.event.inputs.dry_run == 'false') && ' ' || '--dry-run' }}
+            ${{ (github.event.inputs.dry_run == 'true') && '--dry-run' || ' ' }}
 
       - name: Commit updated state + cache
         run: |
