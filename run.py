@@ -47,6 +47,11 @@ def main() -> int:
         action="store_true",
         help="if no opportunity alerts fire, send one confirmation message instead",
     )
+    p.add_argument(
+        "--log-all",
+        action="store_true",
+        help="append every assessment (not just alerts) to data/observations.jsonl",
+    )
     args = p.parse_args()
 
     cfg = apply_sector(load_config(args.config), args.sector)
@@ -60,6 +65,10 @@ def main() -> int:
     result = run_pipeline(cfg, source, alerter, store)
     print(format_summary(result.assessments, result.alerts))
     print(f"Sent {result.sent} alert(s)." + (" (dry-run)" if dry else ""))
+
+    if args.log_all:
+        n = store.log_observations(result.assessments)
+        print(f"Logged {n} observation(s) to data/observations.jsonl.")
 
     # Heartbeat: real alerts already went out for any opportunity; if there were none,
     # send one confirmation so you know the run happened and CallMeBot is wired.

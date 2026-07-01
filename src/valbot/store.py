@@ -43,6 +43,42 @@ class Store:
         with open(self.alerted_path, "w", encoding="utf-8") as f:
             json.dump(sorted(self._alerted), f, indent=2)
 
+    def log_observations(self, assessments: list[Assessment]) -> int:
+        """Append EVERY assessment (alert or skip) to observations.jsonl — the full
+        deal-flow record, one JSON object per line. This is the dataset that grows over
+        time: what was on offer, what we valued it at, and whether/why it passed. Feeds
+        later analysis and calibration. Append-only (JSONL) so it scales without rewrites.
+        Returns how many rows were written."""
+        if not assessments:
+            return 0
+        path = self.data_dir / "observations.jsonl"
+        ts = _utcnow()
+        with open(path, "a", encoding="utf-8") as f:
+            for a in assessments:
+                v = a.valuation
+                f.write(json.dumps({
+                    "ts": ts,
+                    "listing_id": a.listing.listing_id,
+                    "model": v.card.label() if v else a.listing.card.label(),
+                    "current_price": a.listing.price,
+                    "bin_price": a.listing.bin_price,
+                    "ends_at": a.listing.ends_at,
+                    "url": a.listing.url,
+                    "point_value": round(v.point_value, 2) if v else None,
+                    "conservative_value": round(v.conservative_value, 2) if v else None,
+                    "n_comps": v.n if v else 0,
+                    "confidence": v.confidence if v else None,
+                    "rel_dispersion": round(v.rel_dispersion, 4) if v else None,
+                    "max_bid": a.max_bid,
+                    "expected_profit": a.expected_profit,
+                    "margin": a.margin,
+                    "is_alert": a.is_alert,
+                    "passed_gate": a.passed_gate,
+                    "passed_floors": a.passed_floors,
+                    "reasons": a.reasons,
+                }) + "\n")
+        return len(assessments)
+
     def log_alert(self, a: Assessment) -> None:
         """Append the prediction. Result fields are null until Ben fills them in."""
         record = {

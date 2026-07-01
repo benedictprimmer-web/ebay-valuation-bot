@@ -6,6 +6,8 @@ name: scan
 # history are committed back so the 30-day cache and monthly ledger persist.
 # Re-run 2: clean comps (used/no-bundle filter) + A7 II search fix (~1 new pull).
 on:
+  schedule:
+    - cron: "30 6 * * *"  # daily — snapshot niche scatter into scatter_history.json
   workflow_dispatch:
     inputs:
       sector:
