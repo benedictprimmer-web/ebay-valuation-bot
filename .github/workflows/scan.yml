@@ -10,6 +10,11 @@ on:
       sector:
         description: "sector to scan"
         default: "cameras-lenses"
+  # Also run when this file changes on the scan-runner branch, so a scan can be
+  # kicked off by push (workflow_dispatch needs actions:write the bot token lacks).
+  push:
+    branches: [claude/last-change-8xv4fc]
+    paths: [".github/workflows/scan.yml"]
 
 permissions:
   contents: write
