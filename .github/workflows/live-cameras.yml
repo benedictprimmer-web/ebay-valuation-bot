@@ -15,10 +15,10 @@ on:
         description: "force print-only (don't send WhatsApp even if CallMeBot is set)"
         type: boolean
         default: false
-  # Temporary: one-off push-triggered test run (sends a real alert or a heartbeat).
-  push:
-    branches: [claude/last-change-8xv4fc]
-    paths: [".github/workflows/live-cameras.yml"]
+      heartbeat:
+        description: "if no opportunity, send a confirmation message (test CallMeBot)"
+        type: boolean
+        default: false
 
 permissions:
   contents: write
@@ -46,8 +46,9 @@ jobs:
           CALLMEBOT_PHONE: ${{ secrets.CALLMEBOT_PHONE }}
           CALLMEBOT_APIKEY: ${{ secrets.CALLMEBOT_APIKEY }}
         run: |
-          python run.py --mode hybrid --sector cameras-lenses --heartbeat \
-            ${{ (github.event.inputs.dry_run == 'true') && '--dry-run' || ' ' }}
+          python run.py --mode hybrid --sector cameras-lenses \
+            ${{ (github.event.inputs.dry_run == 'true') && '--dry-run' || ' ' }} \
+            ${{ (github.event.inputs.heartbeat == 'true') && '--heartbeat' || ' ' }}
 
       - name: Commit updated state + cache
         run: |
