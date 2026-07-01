@@ -14,7 +14,7 @@ on:
         default: true
   # Temporary: lets the bot kick a dry-run by push (workflow_dispatch needs a scope the
   # bot token lacks). Removed once live alerting is confirmed.
-  # re-run 2: body-only targets + Buy-It-Now capture.
+  # re-run 3: wide-window demo to see live valuations.
   push:
     branches: [claude/last-change-8xv4fc]
     paths: [".github/workflows/live-cameras.yml"]
