@@ -22,6 +22,15 @@
   niches by sold-price differentiation (rel-dispersion × √n). Warm cache = 0 pulls.
   Appends to `data/scatter_history.json`.
 
+## Data capture (for calibration + keeping this running)
+- `data/observations.jsonl` — append-only, EVERY assessment from every hourly live run
+  (alerts AND skips): model, price, BIN, valuation, decision + reasons. `run.py --log-all`
+  writes it; live-cameras.yml commits it back. The growing deal-flow dataset.
+- `data/scatter_history.json` — one row per scan. scan.yml now runs DAILY (cron 06:30) so
+  niche scatter builds a time series (cache-served, ~0 pulls after warmup).
+- `data/outcomes.json` — alerts with predictions; fill `result` when a flip resolves →
+  `calibrate.py` tunes the ratio/floors from reality.
+
 ## Two feeds — only ONE is metered
 - SOLD comps (ebay-average-selling-price, 50/month) = valuation. Cached 30 days, so
   ~1 pull/model/month. The 5 camera niches = ~5 pulls/month.

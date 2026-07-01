@@ -62,6 +62,26 @@ def test_dedupe_prevents_repeat_alerts():
     assert second.sent == 0  # already alerted, deduped
 
 
+def test_observations_log_captures_every_assessment():
+    cfg, source, alerter, store = build()
+    result = run_pipeline(cfg, source, alerter, store)
+    n = store.log_observations(result.assessments)
+    assert n == len(result.assessments) >= 6  # alerts AND skips, not just the 2 alerts
+    import json
+
+    path = store.data_dir / "observations.jsonl"
+    lines = path.read_text().strip().splitlines()
+    assert len(lines) == n
+    rows = [json.loads(line) for line in lines]
+    # both an alert and a skip are present, with their decision recorded
+    assert any(r["is_alert"] for r in rows)
+    assert any(not r["is_alert"] for r in rows)
+    assert all("model" in r and "current_price" in r and "reasons" in r for r in rows)
+    # appends, not overwrites
+    store.log_observations(result.assessments)
+    assert len(path.read_text().strip().splitlines()) == 2 * n
+
+
 def test_outcome_log_written():
     cfg, source, alerter, store = build()
     run_pipeline(cfg, source, alerter, store)
