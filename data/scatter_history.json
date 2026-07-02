@@ -122,5 +122,135 @@
         "score": 0.137
       }
     ]
+  },
+  {
+    "scanned_at": "2026-07-02T09:40:13.169371+00:00",
+    "sector": "cameras-lenses",
+    "rows": [
+      {
+        "query": "Nikon D3200 body",
+        "source": "fresh pull",
+        "n": 14,
+        "median": 129.0,
+        "min": 56.0,
+        "max": 235.0,
+        "rel_dispersion": 0.34,
+        "edge_gbp": 73.0,
+        "edge_pct": 0.566,
+        "score": 1.271
+      },
+      {
+        "query": "Panasonic Lumix G7 body",
+        "source": "fresh pull",
+        "n": 24,
+        "median": 216.28,
+        "min": 100.0,
+        "max": 350.0,
+        "rel_dispersion": 0.24,
+        "edge_gbp": 116.28,
+        "edge_pct": 0.538,
+        "score": 1.177
+      },
+      {
+        "query": "Nikon D5100 body",
+        "source": "fresh pull",
+        "n": 9,
+        "median": 129.99,
+        "min": 59.0,
+        "max": 248.58,
+        "rel_dispersion": 0.389,
+        "edge_gbp": 70.99,
+        "edge_pct": 0.546,
+        "score": 1.166
+      },
+      {
+        "query": "Nikon D610 body",
+        "source": "cache",
+        "n": 45,
+        "median": 256.17,
+        "min": 103.35,
+        "max": 419.99,
+        "rel_dispersion": 0.171,
+        "edge_gbp": 152.82,
+        "edge_pct": 0.597,
+        "score": 1.147
+      },
+      {
+        "query": "Canon EOS 6D body",
+        "source": "cache",
+        "n": 22,
+        "median": 217.98,
+        "min": 116.21,
+        "max": 460.0,
+        "rel_dispersion": 0.176,
+        "edge_gbp": 101.77,
+        "edge_pct": 0.467,
+        "score": 0.826
+      },
+      {
+        "query": "Canon EOS 600D body",
+        "source": "fresh pull",
+        "n": 8,
+        "median": 103.2,
+        "min": 44.6,
+        "max": 155.58,
+        "rel_dispersion": 0.207,
+        "edge_gbp": 58.6,
+        "edge_pct": 0.568,
+        "score": 0.585
+      },
+      {
+        "query": "Nikon D7000 body",
+        "source": "fresh pull",
+        "n": 28,
+        "median": 145.25,
+        "min": 89.0,
+        "max": 258.92,
+        "rel_dispersion": 0.109,
+        "edge_gbp": 56.25,
+        "edge_pct": 0.387,
+        "score": 0.577
+      },
+      {
+        "query": "Fujifilm X-T30 body",
+        "source": "cache",
+        "n": 13,
+        "median": 428.91,
+        "min": 361.42,
+        "max": 558.96,
+        "rel_dispersion": 0.119,
+        "edge_gbp": 67.49,
+        "edge_pct": 0.157,
+        "score": 0.431
+      },
+      {
+        "query": "Sony A7 II body",
+        "source": "cache",
+        "n": 14,
+        "median": 322.88,
+        "min": 166.02,
+        "max": 439.99,
+        "rel_dispersion": 0.09,
+        "edge_gbp": 156.85,
+        "edge_pct": 0.486,
+        "score": 0.335
+      },
+      {
+        "query": "Sony A6000 body",
+        "source": "cache",
+        "n": 14,
+        "median": 293.0,
+        "min": 214.0,
+        "max": 419.95,
+        "rel_dispersion": 0.037,
+        "edge_gbp": 79.0,
+        "edge_pct": 0.27,
+        "score": 0.137
+      },
+      {
+        "query": "Canon EOS 700D body",
+        "source": "fresh pull"
+      }
+    ]
   }
 ]
