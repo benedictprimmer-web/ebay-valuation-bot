@@ -215,8 +215,18 @@ sectors:
           - "Fujifilm X-E3 body"     # £150-250, rangefinder-style draw
           - "Canon EOS 250D body"    # £200-290, current entry DSLR, high volume
           - "Olympus OM-D E-M10 Mark II body"  # £120-200, MFT entry, good volume
-          # Parser gaps to fix before these resolve (silently skipped today):
-          # Canon EOS M50, Nikon D90, Panasonic GX80.
+          # Added 2026-07 (batch 2) → 30 niches total, still ≤30 pulls/month vs 50 cap.
+          # First three use the parser fixes for M-series / 2-digit Nikon / Panasonic GX.
+          - "Canon EOS M50 body"     # £250-340, huge vlogger demand
+          - "Nikon D90 body"         # £60-120, legacy but enormous volume
+          - "Panasonic Lumix GX80 body"  # £180-280, IBIS + 4K draw
+          - "Canon EOS 750D body"    # £150-220, high-volume entry DSLR
+          - "Canon EOS 100D body"    # £120-180, smallest DSLR, steady demand
+          - "Nikon D3100 body"       # £70-120, massive entry volume
+          - "Nikon D5200 body"       # £100-160, high volume
+          - "Fujifilm X-T10 body"    # £150-220, APS-C value pick
+          - "Olympus OM-D E-M10 Mark III body"  # £200-300, MFT
+          - "Panasonic Lumix G80 body"  # £200-300, weather-sealed MFT
       # SOLD-COMP SOURCE — real UK sold prices via RapidAPI (ADR-011 gap now closed).
       # Provider: "eBay Average Selling Price" (ebay-average-selling-price.p.rapidapi.com,
       # colindaniels/caffeindev). POST /findCompletedItems returns true completed-sale
