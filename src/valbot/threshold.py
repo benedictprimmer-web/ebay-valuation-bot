@@ -48,12 +48,14 @@ def assess(listing: Listing, valuation: Valuation | None, cfg: dict) -> Assessme
 
     sale_price = valuation.conservative_value
     required_profit = max(th["margin_floor"] * sale_price, th["profit_floor"])
-    max_bid_raw = solve_max_bid(sale_price, required_profit, fee_cfg)
+    # Use the listing's real inbound postage when known (Browse), else the flat estimate.
+    postage_in = listing.postage_in if listing.postage_in is not None else fee_cfg["postage_in"]
+    max_bid_raw = solve_max_bid(sale_price, required_profit, fee_cfg, postage_in=postage_in)
     # Price cap is a separate risk control (ADR-004) — clamps the bid, not the ranking.
     max_bid = min(max_bid_raw, th["price_cap"]) if max_bid_raw > 0 else None
 
     current = listing.price
-    expected_profit = profit(current, sale_price, fee_cfg)
+    expected_profit = profit(current, sale_price, fee_cfg, postage_in=postage_in)
     margin = expected_profit / sale_price if sale_price > 0 else 0.0
     headroom = (max_bid - current) if max_bid is not None else None
 
@@ -78,11 +80,24 @@ def assess(listing: Listing, valuation: Valuation | None, cfg: dict) -> Assessme
             floors_ok = False
             reasons.append(f"under margin floor ({margin:.0%})")
 
+    # Quality floor: a STATED shutter count near end-of-life makes a body too worn to
+    # auto-recommend (its comps are mixed-condition, so it isn't really a bargain). Only
+    # fires when the count is known — unknown (the common case) never penalises.
+    q = cfg.get("quality", {})
+    sc = getattr(listing, "shutter_count", None)
+    rating = q.get("shutter_rating_default")
+    frac = q.get("shutter_max_fraction")
+    if sc is not None and rating and frac and sc > float(frac) * float(rating):
+        floors_ok = False
+        reasons.append(
+            f"high shutter count ({sc:,} > {int(float(frac) * 100)}% of ~{int(rating):,})"
+        )
+
     sf = sell_fees(sale_price, fee_cfg)
     fee_breakdown = {
         **sf,
         "buyer_protection": round(buyer_protection_fee(current, fee_cfg), 2),
-        "postage_in": fee_cfg["postage_in"],
+        "postage_in": round(postage_in, 2),
         "postage_out": fee_cfg["postage_out"],
         "required_profit": round(required_profit, 2),
     }

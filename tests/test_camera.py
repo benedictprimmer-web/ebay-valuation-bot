@@ -4,8 +4,24 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from valbot.camera import CameraItem, group_by_model, parse_camera  # noqa: E402
+from valbot.camera import (  # noqa: E402
+    CameraItem,
+    group_by_model,
+    parse_camera,
+    parse_shutter_count,
+)
 from valbot.config import ROOT  # noqa: E402
+
+
+def test_parse_shutter_count_variants_and_unknown():
+    assert parse_shutter_count("Sony A6000 body shutter count 12,345") == 12345
+    assert parse_shutter_count("Canon 6D SC 12k") == 12000
+    assert parse_shutter_count("Nikon D610 45000 actuations") == 45000
+    assert parse_shutter_count("Sony A7 II 180,000 shutter count") == 180000
+    # unknown is the common case and must never look like a bad (low/zero) value
+    assert parse_shutter_count("Sony A6000 body only boxed") is None
+    assert parse_shutter_count("Nikon D3200 body 18-55mm") is None  # focal, not a count
+    assert parse_shutter_count("") is None
 
 
 def test_body_variants_resolve_to_same_key():

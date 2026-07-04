@@ -36,6 +36,16 @@ gate:
   min_comps: 8
   max_rel_dispersion: 0.35 # drop scattered comps (spread / point_value)
 
+# ---- Quality signals --------------------------------------------------------
+# Shutter count is a body-wear signal. When a listing STATES it (often it doesn't),
+# skip auto-alerting a body past `shutter_max_fraction` of its rated life — it's too worn
+# to be a real bargain against mixed-condition comps. Unknown count => never penalised.
+# rating_default is a single conservative figure across bodies (they vary ~100k–300k);
+# tune, or add per-model ratings later. Cards have no shutter_count, so this never fires.
+quality:
+  shutter_rating_default: 150000
+  shutter_max_fraction: 0.70 # skip if stated count > 70% of ~150k (i.e. > ~105k)
+
 # ---- Fees, all-in conservative (ADR-005) ------------------------------------
 # Itemised on purpose: you can see which cost eats the margin and swap a single
 # rate when eBay changes it, without touching the logic.

@@ -69,3 +69,15 @@ def test_solve_max_bid_hits_required_profit():
 def test_solve_returns_zero_when_impossible():
     # tiny sale price can't clear a £15 profit after fees + postage
     assert solve_max_bid(15.0, 15.0, FCFG) == 0.0
+
+
+def test_postage_in_override_beats_flat_estimate():
+    # A listing with pricey real postage nets less profit and a lower max bid than the
+    # flat £3.50 estimate; free postage (0.0) does better.
+    base = profit(40, 100, FCFG)                       # flat 3.50
+    dear = profit(40, 100, FCFG, postage_in=9.99)      # real, expensive
+    free = profit(40, 100, FCFG, postage_in=0.0)       # free postage
+    assert dear < base < free
+    assert round(base - dear, 2) == round(9.99 - 3.50, 2)
+    # the max bid tracks the same way
+    assert solve_max_bid(100, 25, FCFG, postage_in=9.99) < solve_max_bid(100, 25, FCFG)

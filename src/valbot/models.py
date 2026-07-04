@@ -52,6 +52,7 @@ class Listing:
     condition_id: Optional[str] = None  # eBay conditionId: 3000 Used, 7000 For parts...
     seller_feedback_pct: Optional[float] = None  # seller positive-feedback %, 0..100
     seller_feedback_score: Optional[int] = None  # seller feedback count
+    shutter_count: Optional[int] = None  # actuations if the title states them; None = unknown
 
     def matches(self, card: Card) -> bool:
         return self.card.key() == card.key()

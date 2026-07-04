@@ -56,32 +56,41 @@ def buyer_protection_fee(buy_price: float, cfg: dict) -> float:
     return fee
 
 
-def profit(buy_price: float, sale_price: float, cfg: dict) -> float:
-    """Net £ profit on a flip: resale minus the buy, all costs both sides."""
+def profit(
+    buy_price: float, sale_price: float, cfg: dict, *, postage_in: float | None = None
+) -> float:
+    """Net £ profit on a flip: resale minus the buy, all costs both sides.
+
+    `postage_in` overrides the flat fees.postage_in estimate with the listing's real
+    inbound postage when known (Browse gives it per listing). None -> flat estimate.
+    """
     sf = sell_fees(sale_price, cfg)["sell_total"]
     bpf = buyer_protection_fee(buy_price, cfg)
+    pin = cfg["postage_in"] if postage_in is None else postage_in
     return (
         sale_price
         - buy_price
         - sf
         - bpf
-        - cfg["postage_in"]
+        - pin
         - cfg["postage_out"]
     )
 
 
-def solve_max_bid(sale_price: float, required_profit: float, cfg: dict) -> float:
+def solve_max_bid(
+    sale_price: float, required_profit: float, cfg: dict, *, postage_in: float | None = None
+) -> float:
     """Highest buy price where profit still equals required_profit.
 
     profit() is monotonically decreasing in buy_price (buyer-protection adds to the
     buy), so bisect. Returns 0.0 if no buy price clears the required profit.
     """
-    if profit(0.0, sale_price, cfg) < required_profit:
+    if profit(0.0, sale_price, cfg, postage_in=postage_in) < required_profit:
         return 0.0
     lo, hi = 0.0, sale_price
     for _ in range(60):  # ~1e-18 resolution, plenty
         mid = (lo + hi) / 2
-        if profit(mid, sale_price, cfg) >= required_profit:
+        if profit(mid, sale_price, cfg, postage_in=postage_in) >= required_profit:
             lo = mid
         else:
             hi = mid

@@ -83,10 +83,13 @@ its keep.
 
 - **P0 — done:** capture condition + seller, gate broken/for-parts/low-feedback targets,
   show condition in the alert.
-- **P1 — cheap, high value (next):**
-  1. **Shutter-count parsing** from title (`shutter count 12,345`, `SC 12k`, `actuations`).
-     High (>~60–70% of the model's rating) → discount or flag; very low → premium tag.
-  2. **Use real shipping cost** from Browse instead of the flat £3.50 `postage_in`.
+- **P1 — cheap, high value:**
+  1. ✅ **Shutter-count parsing** from title (`shutter count 12,345`, `SC 12k`, `actuations`).
+     Skips auto-alert past `shutter_max_fraction` (0.70) of `shutter_rating_default` (~150k);
+     shown in the alert. Unknown (the common case) never penalises. _Title-only for now;
+     P2 reads the description for the rest._
+  2. ✅ **Real per-listing postage** from Browse (`shippingOptions`) overrides the flat
+     £3.50 `postage_in` in the profit/max-bid maths; shown in the alert.
   3. **UK-only / returns-accepted** filters (drop imports; prefer returnable = can send a dud back).
   4. **Condition tag in the alert note** derived from title (mint/boxed vs worn) so ranking
      can prefer clean copies.

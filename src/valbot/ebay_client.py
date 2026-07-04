@@ -286,6 +286,15 @@ class BrowseAPISource:
                 fb_score = int(seller.get("feedbackScore"))
             except (TypeError, ValueError):
                 fb_score = None
+            # Real inbound postage for THIS listing (free = 0.0). None -> fall back to the
+            # flat fees.postage_in estimate. shippingOptions[0] is the primary option.
+            ship_in = None
+            ship_opts = item.get("shippingOptions") or []
+            if ship_opts:
+                try:
+                    ship_in = float((ship_opts[0].get("shippingCost") or {}).get("value"))
+                except (TypeError, ValueError):
+                    ship_in = None
             return camera_listing_from_title(
                 title=title,
                 price=value,
@@ -294,6 +303,7 @@ class BrowseAPISource:
                 is_auction=bool(item.get("currentBidPrice")),
                 ends_at=item.get("itemEndDate"),
                 bin_price=bin_price,
+                postage_in=ship_in,
                 condition=item.get("condition"),
                 condition_id=str(item.get("conditionId")) if item.get("conditionId") else None,
                 seller_feedback_pct=fb_pct,

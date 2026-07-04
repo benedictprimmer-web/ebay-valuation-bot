@@ -107,6 +107,36 @@ def test_camera_watchlist_rejects_ambiguous_title(tmp_path):
         load_watchlist(wl, identity="camera")
 
 
+def _passing_valuation(card):
+    from valbot.models import Valuation
+    return Valuation(
+        card=card, n=14, point_value=310.0, dispersion=15.0, rel_dispersion=0.05,
+        conservative_value=300.0, confidence=0.8, confidence_label="high", ratio=1.0,
+    )
+
+
+def test_high_shutter_count_blocks_alert_but_unknown_passes():
+    from valbot.camera import camera_listing_from_title
+    from valbot.threshold import assess
+    cfg = cam_cfg()  # carries the quality block: rating 150k, max_fraction 0.70 (~105k)
+
+    def _assess(title):
+        lst = camera_listing_from_title(
+            title=title, price=120.0, listing_id="x", url="u", is_auction=True,
+        )
+        return assess(lst, _passing_valuation(lst.card), cfg)
+
+    worn = _assess("Sony A6000 body shutter count 180,000")   # > 105k -> blocked
+    assert worn.listing.shutter_count == 180000
+    assert not worn.is_alert
+    assert any("shutter" in r for r in worn.reasons)
+
+    fresh = _assess("Sony A6000 body shutter count 4,000")    # low -> fine
+    assert fresh.is_alert
+    unknown = _assess("Sony A6000 body only boxed")           # not stated -> not penalised
+    assert unknown.listing.shutter_count is None and unknown.is_alert
+
+
 def test_targets_mode_values_camera_against_comps():
     cfg = cam_cfg()
     src = get_source(cfg, "mock", mock_path=FIXTURE)

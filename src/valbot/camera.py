@@ -155,6 +155,40 @@ def parse_camera(title: str) -> CameraItem:
     return CameraItem(brand="unknown", model="", kind="unknown", resolved=False, raw=title)
 
 
+# Shutter count — a body-wear signal sellers SOMETIMES put in the title ("shutter count
+# 12,345", "SC 12k", "12000 actuations"). Usually it's only in the description or not
+# stated at all, so this returns None far more often than not — and None must never be
+# treated as "bad", only as "unknown". P2 will read the description for the rest.
+_SHUTTER_PATTERNS = [
+    re.compile(r"(?:shutter\s*count|shutter\s*actuations?|actuations?|shutter\s*clicks?)\s*[:\-]?\s*(\d[\d,]*)\s*(k)?", re.IGNORECASE),
+    re.compile(r"\bsc\s*[:\-]?\s*(\d[\d,]*)\s*(k)?\b", re.IGNORECASE),
+    re.compile(r"(\d[\d,]*)\s*(k)?\s*(?:shutter\s*count|actuations?|shutter\s*clicks?|clicks)", re.IGNORECASE),
+]
+
+
+def parse_shutter_count(text: str) -> int | None:
+    """Best-effort shutter actuations from a title. None when not stated (the common case).
+
+    A 'k' suffix multiplies by 1000. Implausible values (0, or > 2,000,000) are ignored.
+    Requires a shutter-related token so bare model/price numbers aren't misread."""
+    if not text:
+        return None
+    low = text.lower()
+    if not ("shutter" in low or "actuation" in low or "click" in low or re.search(r"\bsc\b", low)):
+        return None
+    for pat in _SHUTTER_PATTERNS:
+        m = pat.search(text)
+        if not m:
+            continue
+        num = m.group(1).replace(",", "")
+        if not num.isdigit():
+            continue
+        val = int(num) * (1000 if m.group(2) else 1)
+        if 0 < val <= 2_000_000:
+            return val
+    return None
+
+
 def group_by_model(titles: list[str]) -> dict[str, list[str]]:
     """Cluster messy titles by resolved identity. Unresolved land under '__manual__'."""
     out: dict[str, list[str]] = {}
@@ -173,6 +207,7 @@ def camera_listing_from_title(
     is_auction: bool,
     ends_at: str | None = None,
     bin_price: float | None = None,
+    postage_in: float | None = None,
     condition: str | None = None,
     condition_id: str | None = None,
     seller_feedback_pct: float | None = None,
@@ -197,8 +232,10 @@ def camera_listing_from_title(
         is_auction=is_auction,
         ends_at=ends_at,
         bin_price=bin_price,
+        postage_in=postage_in,
         condition=condition,
         condition_id=condition_id,
         seller_feedback_pct=seller_feedback_pct,
         seller_feedback_score=seller_feedback_score,
+        shutter_count=parse_shutter_count(title),
     )

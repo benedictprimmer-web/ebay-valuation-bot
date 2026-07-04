@@ -27,6 +27,8 @@ def format_alert(a: Assessment) -> str:
     qual = []
     if a.listing.condition:
         qual.append(a.listing.condition)
+    if a.listing.shutter_count is not None:
+        qual.append(f"shutter ~{a.listing.shutter_count:,}")
     if a.listing.seller_feedback_pct is not None:
         score = a.listing.seller_feedback_score
         qual.append(
@@ -35,6 +37,8 @@ def format_alert(a: Assessment) -> str:
         )
     if qual:
         lines.append("Condition:   " + "  ·  ".join(qual))
+    if a.listing.postage_in is not None:
+        lines.append(f"Postage in:  £{a.listing.postage_in:.2f}")
     lines += [
         "",
         f"Point value:        £{v.point_value:.2f}",
