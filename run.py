@@ -52,10 +52,28 @@ def main() -> int:
         action="store_true",
         help="append every assessment (not just alerts) to data/observations.jsonl",
     )
+    p.add_argument(
+        "--daily-summary",
+        action="store_true",
+        help="send ONE WhatsApp summary of today's deal flow (even if 0 found) and exit. "
+             "Reads the logs only — no data source, no sold-feed pulls.",
+    )
     args = p.parse_args()
 
     cfg = apply_sector(load_config(args.config), args.sector)
     print(f"Sector: {cfg.get('active_sector')}")
+
+    # Daily summary: pure reporting off the on-disk logs. Short-circuits before any
+    # data source, so it needs no eBay/RapidAPI keys — only CallMeBot to send.
+    if args.daily_summary:
+        from valbot.summary import build_daily_summary
+
+        alerter = get_alerter(dry_run=args.dry_run)
+        msg = build_daily_summary(cfg, ROOT / "data")
+        alerter.send(msg)
+        print(msg)
+        return 0
+
     source = get_source(cfg, args.mode, mock_path=args.mock_data)
     # In mock mode default to dry-run alerts unless secrets are present.
     dry = args.dry_run or args.mode == "mock"

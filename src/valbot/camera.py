@@ -45,11 +45,12 @@ _BODY_PATTERNS = [
     ("canon", re.compile(r"\beos\s?(r)\s?(\d+|p)?\b")),
     ("canon", re.compile(r"\b(r)\s?(\d{1,3})\b")),
     ("canon", re.compile(r"\b(\d{1,3})\s?(d)\b")),
+    ("canon", re.compile(r"\b(m)\s?(\d{1,3})\b")),  # EOS M mirrorless (M50, M6, M100...)
     ("nikon", re.compile(r"\b(z)\s?(\d|f|fc)\b")),
-    ("nikon", re.compile(r"\b(d)\s?(\d{3,4})\b")),
+    ("nikon", re.compile(r"\b(d)\s?(\d{1,4})\b")),  # 1-4 digits: D6, D90, D610, D3200
     ("fujifilm", re.compile(r"\b(x)\s?(t|s|h|e|pro)\s?(\d+)\b")),
     ("fujifilm", re.compile(r"\b(x100)\s?([a-z]+)?\b")),
-    ("panasonic", re.compile(r"\b(gh|g|s|fz)\s?(\d+)\b")),
+    ("panasonic", re.compile(r"\b(gh|gx|gf|gm|g|s|fz)\s?(\d+)\b")),  # gx/gf/gm before bare g
     ("olympus", re.compile(r"\b(?:om\s?d\s?)?(e\s?m)\s?(\d+)\b")),
     ("olympus", re.compile(r"\b(om)\s?(\d+)\b")),
 ]

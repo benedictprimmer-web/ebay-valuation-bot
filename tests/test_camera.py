@@ -65,6 +65,21 @@ def test_grouping_clusters_comps():
     assert g["__manual__"] == ["random junk"]
 
 
+def test_previously_unresolved_bodies_now_parse():
+    """Regression: Canon EOS M-series, 2-digit Nikons, and Panasonic GX/GF/GM bodies
+    used to fall through to unresolved (silently skipped). They must resolve now."""
+    assert parse_camera("Canon EOS M50 body").key() == "canon|body|m50"
+    assert parse_camera("Canon EOS M50 Mark II body").key() == "canon|body|m50 2"
+    assert parse_camera("Nikon D90 body").key() == "nikon|body|d90"
+    assert parse_camera("Nikon D6 body").key() == "nikon|body|d6"
+    assert parse_camera("Panasonic Lumix GX80 body").key() == "panasonic|body|gx80"
+    assert parse_camera("Panasonic Lumix GF7").key() == "panasonic|body|gf7"
+    # and the broadened patterns must not swallow existing identities
+    assert parse_camera("Canon EOS 6D body").key() == "canon|body|6d"
+    assert parse_camera("Panasonic Lumix G7 body").key() == "panasonic|body|g7"
+    assert parse_camera("Nikon D610 body").key() == "nikon|body|d610"
+
+
 def test_fixture_mostly_resolves():
     data = json.loads((ROOT / "data" / "mock_cameras.json").read_text())
     titles = [e["title"] for e in data["targets"] + data["comps"]]

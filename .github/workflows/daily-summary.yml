@@ -1,0 +1,45 @@
+name: daily-summary
+
+# One WhatsApp a day summarising the cameras lane's deal flow — even a zero-deal day
+# sends "0 bargains found today", so silence means something's wrong (dead-man's switch).
+# Reads only the committed logs (outcomes.json / observations.jsonl / pull ledger): no
+# eBay or RapidAPI calls, so it spends 0 of the 50 monthly sold-price pulls.
+#
+# 18:00 UTC = 19:00 BST (British Summer Time). GitHub cron is UTC and does NOT follow
+# DST, so from late Oct to late Mar this lands at 18:00 GMT (6pm). Adjust the hour then
+# if you want a year-round 7pm.
+on:
+  schedule:
+    - cron: "0 18 * * *"
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "print only, don't send WhatsApp"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: valbot-daily-summary
+  cancel-in-progress: false
+
+jobs:
+  summary:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install deps
+        run: pip install -r requirements.txt
+
+      - name: Send daily summary
+        env:
+          CALLMEBOT_PHONE: ${{ secrets.CALLMEBOT_PHONE }}
+          CALLMEBOT_APIKEY: ${{ secrets.CALLMEBOT_APIKEY }}
+        run: |
+          python run.py --sector cameras-lenses --daily-summary \
+            ${{ (github.event.inputs.dry_run == 'true') && '--dry-run' || ' ' }}
