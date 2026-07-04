@@ -253,6 +253,24 @@ def test_sold_comps_drop_new_parts_and_bundles(monkeypatch):
     assert [round(c.price) for c in comps] == [250]  # only the clean used body survives
 
 
+def test_lens_niche_keeps_zoom_comps_body_only_excludes_dont_apply(monkeypatch):
+    """A zoom IS a lens: the body-only excludes (zoom/kit/with-lens) must NOT strip a
+    lens niche's comps. Universal excludes (bundles/lots) still apply to lenses."""
+    from valbot.camera import parse_camera
+    cfg = apply_sector(load_config(), "cameras-lenses")
+    src = ThirdPartySource(api_key="x", cfg=cfg)
+    resp = {"products": [
+        {"title": "Canon EF 24-105mm f4 L IS USM zoom lens", "sale_price": 240.0,
+         "condition": "Used", "item_id": "1", "link": "u1"},        # 'zoom' -> KEPT (lens)
+        {"title": "Canon EF 24-105mm f4 L lens bundle with hood + filters",
+         "sale_price": 260.0, "condition": "Used", "item_id": "2", "link": "u2"},  # bundle -> drop
+    ]}
+    import requests
+    monkeypatch.setattr(requests, "post", lambda *a, **k: _FakeResp(resp))
+    comps = src.fetch_comps(parse_camera("Canon EF 24-105mm f4 L"))
+    assert [round(c.price) for c in comps] == [240]  # zoom kept, bundle dropped
+
+
 def test_cameras_sold_comps_parse_and_filter_by_model(monkeypatch):
     cfg = apply_sector(load_config(), "cameras-lenses")
     src = ThirdPartySource(api_key="rapid-key", cfg=cfg)

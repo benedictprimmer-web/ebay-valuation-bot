@@ -58,18 +58,25 @@ def main() -> int:
         help="send ONE WhatsApp summary of today's deal flow (even if 0 found) and exit. "
              "Reads the logs only — no data source, no sold-feed pulls.",
     )
+    p.add_argument(
+        "--weekly-digest",
+        action="store_true",
+        help="send ONE WhatsApp digest of the last 7 days' deal flow and exit. "
+             "Reads the logs only — no data source, no sold-feed pulls.",
+    )
     args = p.parse_args()
 
     cfg = apply_sector(load_config(args.config), args.sector)
     print(f"Sector: {cfg.get('active_sector')}")
 
-    # Daily summary: pure reporting off the on-disk logs. Short-circuits before any
-    # data source, so it needs no eBay/RapidAPI keys — only CallMeBot to send.
-    if args.daily_summary:
-        from valbot.summary import build_daily_summary
+    # Digest modes: pure reporting off the on-disk logs. Short-circuit before any data
+    # source, so they need no eBay/RapidAPI keys — only CallMeBot to send.
+    if args.daily_summary or args.weekly_digest:
+        from valbot.summary import build_daily_summary, build_weekly_digest
 
         alerter = get_alerter(dry_run=args.dry_run)
-        msg = build_daily_summary(cfg, ROOT / "data")
+        builder = build_weekly_digest if args.weekly_digest else build_daily_summary
+        msg = builder(cfg, ROOT / "data")
         alerter.send(msg)
         print(msg)
         return 0

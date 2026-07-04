@@ -4,8 +4,9 @@
 - **RapidAPI "eBay Average Selling Price" (sold feed) is capped at 50 pulls/month.** Be cautious.
 - **1 pull = 1 `findCompletedItems` call = 1 model's sold comps.** The min/median/max/average
   stats come back in that SAME response — capturing them costs **zero** extra pulls.
-- **pulls = (unique models valued, uncached) × (cache-miss events).** 20 camera niches, each
-  cached 30 days ⇒ ~20 pulls/month (≤1 per model), well under 50.
+- **pulls = (unique models valued, uncached) × (cache-miss events).** 40 niches (30 bodies +
+  10 lenses), each cached 30 days ⇒ ≤40 pulls/month (≤1 per model). Under 50 but headroom
+  is now thinner — watch it before adding many more niches (or widen cache_days).
 - Two hard guards on the metered feed (config'd on the cameras `thirdparty.sold` block):
   `monthly_pull_budget: 50` (ledger ceiling) AND `max_pulls_per_run: 12` (burst cap so one
   cold-cache run can't drain the month). Over either → BudgetExceeded → caller degrades to
@@ -38,7 +39,13 @@
 
 ## Two feeds — only ONE is metered
 - SOLD comps (ebay-average-selling-price, 50/month) = valuation. Cached 30 days, so
-  ~1 pull/model/month. The 20 camera niches = ~20 pulls/month.
+  ~1 pull/model/month. The 40 niches (30 bodies + 10 lenses) = ≤40 pulls/month.
+- Comp cleaning is KIND-AWARE: `exclude_title_keywords` (bundles/lots) apply to everything;
+  `exclude_title_keywords_body` (zoom/kit/with-lens) apply ONLY when valuing a body, so
+  lens niches (esp. zooms) keep their comps. See `_parse(..., kind=...)`.
+- Summaries: `run.py --daily-summary` (live-cameras' sibling `daily-summary.yml`, 18:00 UTC
+  = 7pm BST) and `--weekly-digest` (`weekly-digest.yml`, Sun 18:00 UTC). Both read logs
+  only (0 pulls) and always send — a quiet day/week still messages (dead-man's switch).
 - LIVE current auctions = a SEPARATE feed with its own quota. `--mode hybrid` gets these
   FREE from eBay Browse (EBAY_APP_ID/EBAY_CERT_ID) and values them against the cached sold
   comps. Running live hourly is ~free on the 50 budget: comps are cache hits.
@@ -48,7 +55,8 @@
 - Modes: mock | thirdparty (RapidAPI live+sold) | browse (eBay live+active proxy) |
   hybrid (Browse auctions + cached sold comps — the cameras live route).
 - Workflows: live-cameras.yml (hourly hybrid — the live lane), scan.yml (daily scatter
-  scan). valbot.yml (old cards cron) was DELETED 2026-07.
+  scan), daily-summary.yml (7pm BST digest), weekly-digest.yml (Sun 7pm BST).
+  valbot.yml (old cards cron) was DELETED 2026-07.
 
 ## Secrets
 - The workflow reads env `RAPIDAPI_KEY` from `secrets.RAPIDAPI_KEY` (live-cameras.yml). One RapidAPI
