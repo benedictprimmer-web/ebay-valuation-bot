@@ -46,6 +46,12 @@ class Listing:
     ends_at: Optional[str] = None  # ISO8601, auctions only
     postage_in: Optional[float] = None  # seller's stated inbound postage, if known
     bin_price: Optional[float] = None  # Buy-It-Now price, if the auction also offers one
+    # Quality / risk signals (from the Browse item; None when unknown). Used to avoid
+    # alerting on broken goods or dodgy sellers — see _fetch_camera_targets.
+    condition: Optional[str] = None  # e.g. "Used", "For parts or not working"
+    condition_id: Optional[str] = None  # eBay conditionId: 3000 Used, 7000 For parts...
+    seller_feedback_pct: Optional[float] = None  # seller positive-feedback %, 0..100
+    seller_feedback_score: Optional[int] = None  # seller feedback count
 
     def matches(self, card: Card) -> bool:
         return self.card.key() == card.key()

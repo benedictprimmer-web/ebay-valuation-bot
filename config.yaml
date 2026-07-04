@@ -185,6 +185,15 @@ sectors:
         require_buy_it_now: false  # surface BOTH pure auctions and Buy-It-Now listings.
                                    # BINs under your max bid are snap-buys; auctions still
                                    # honour the ending window above.
+        # QUALITY / RISK GATES on the TARGET (what we'd tell you to buy). A broken body
+        # is cheap because it's broken, not mispriced — comparing it to WORKING comps makes
+        # it look like a bargain. Drop those, and skip risky sellers. Signals: the Browse
+        # condition text, conditionId 7000 (For parts), the title, and seller feedback %.
+        exclude_target_conditions: ["for parts", "not working", "spares", "faulty"]
+        exclude_target_title_keywords: ["spares", "faulty", "not working", "for parts",
+          "repair", "cracked", "damaged", "broken", "as-is", "as is", "read description",
+          "untested", "no power", "won't turn on", "for spares"]
+        min_seller_feedback_pct: 98.0  # skip sellers below 98% positive (return/scam risk)
         category_ids: {body: "31388", lens: "3323"}  # Browse API allows 1 ID per request
                                                       # 31388 Digital Cameras, 3323 Camera Lenses leaf
                                                       # NOT 78997 (Lenses & Filters parent — includes hoods)

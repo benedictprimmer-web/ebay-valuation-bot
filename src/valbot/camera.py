@@ -173,6 +173,10 @@ def camera_listing_from_title(
     is_auction: bool,
     ends_at: str | None = None,
     bin_price: float | None = None,
+    condition: str | None = None,
+    condition_id: str | None = None,
+    seller_feedback_pct: float | None = None,
+    seller_feedback_score: int | None = None,
 ) -> Listing | None:
     """Build a Listing whose identity is an exact camera/lens model.
 
@@ -193,4 +197,8 @@ def camera_listing_from_title(
         is_auction=is_auction,
         ends_at=ends_at,
         bin_price=bin_price,
+        condition=condition,
+        condition_id=condition_id,
+        seller_feedback_pct=seller_feedback_pct,
+        seller_feedback_score=seller_feedback_score,
     )

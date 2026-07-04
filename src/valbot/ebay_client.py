@@ -277,6 +277,15 @@ class BrowseAPISource:
                     bin_price = float((item.get("price") or {}).get("value"))
                 except (TypeError, ValueError):
                     bin_price = None
+            seller = item.get("seller") or {}
+            try:
+                fb_pct = float(seller.get("feedbackPercentage"))
+            except (TypeError, ValueError):
+                fb_pct = None
+            try:
+                fb_score = int(seller.get("feedbackScore"))
+            except (TypeError, ValueError):
+                fb_score = None
             return camera_listing_from_title(
                 title=title,
                 price=value,
@@ -285,6 +294,10 @@ class BrowseAPISource:
                 is_auction=bool(item.get("currentBidPrice")),
                 ends_at=item.get("itemEndDate"),
                 bin_price=bin_price,
+                condition=item.get("condition"),
+                condition_id=str(item.get("conditionId")) if item.get("conditionId") else None,
+                seller_feedback_pct=fb_pct,
+                seller_feedback_score=fb_score,
             )
         parsed = parse_grade(title)
         if not parsed:
@@ -341,6 +354,11 @@ class BrowseAPISource:
         cat_map = self.search_cfg.get("category_ids") or {}
         floors = (self.cfg.get("valuation") or {}).get("comp_min_price") or {}
         require_bin = bool(self.search_cfg.get("require_buy_it_now"))
+        # Quality / risk gates: don't tell Ben to buy a broken body (it looks like a
+        # bargain only because it's compared to WORKING comps), or bid via a dodgy seller.
+        excl_cond = [c.lower() for c in self.search_cfg.get("exclude_target_conditions", [])]
+        excl_kw = [k.lower() for k in self.search_cfg.get("exclude_target_title_keywords", [])]
+        min_fb = self.search_cfg.get("min_seller_feedback_pct")
         out: list[Listing] = []
         for query in self.search_cfg["queries"]:
             intended = parse_camera(query)
@@ -353,6 +371,8 @@ class BrowseAPISource:
                 lst = self._to_listing(item, [])
                 if not lst or not lst.card.matches(intended):
                     continue  # drop accessories / other models the keyword dragged in
+                if not self._quality_ok(lst, excl_cond, excl_kw, min_fb):
+                    continue  # broken / for-parts / low-feedback -> never auto-alert
                 snap_buyable = lst.bin_price is not None or not lst.is_auction
                 if require_bin and not snap_buyable:
                     continue  # optional: keep only listings you can Buy-It-Now
@@ -364,6 +384,25 @@ class BrowseAPISource:
                     continue
                 out.append(lst)
         return out
+
+    @staticmethod
+    def _quality_ok(lst, excl_cond: list[str], excl_kw: list[str], min_fb) -> bool:
+        """False for a target we should never auto-alert on: a broken/for-parts item
+        (its cheap price is condition, not mispricing) or a low-feedback seller (risk).
+        Signals come from the Browse condition/conditionId/seller fields + the title."""
+        cond = (lst.condition or "").lower()
+        if excl_cond and any(c in cond for c in excl_cond):
+            return False
+        if lst.condition_id and str(lst.condition_id) == "7000":  # For parts or not working
+            return False
+        if excl_kw:
+            title = (getattr(lst.card, "raw", "") or "").lower()
+            if any(k in title for k in excl_kw):
+                return False
+        if min_fb is not None and lst.seller_feedback_pct is not None:
+            if lst.seller_feedback_pct < float(min_fb):
+                return False
+        return True
 
     def fetch_comps(self, card) -> list[Listing]:
         if self.identity == "camera":

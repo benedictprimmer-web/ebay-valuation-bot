@@ -194,6 +194,41 @@ def test_browse_camera_targets_include_bin_anytime_and_auctions(monkeypatch):
     assert bins["2"].is_auction is True and bins["2"].bin_price is None     # live auction, in window
 
 
+def test_browse_camera_targets_quality_and_seller_gates(monkeypatch):
+    """A broken/for-parts target, a spares title, and a low-feedback seller must all be
+    dropped — only the clean used body from a good seller survives."""
+    from datetime import datetime, timedelta, timezone
+    from valbot.ebay_client import BrowseAPISource
+
+    cfg = apply_sector(load_config(), "cameras-lenses")
+    src = BrowseAPISource(app_id="x", cert_id="y", cfg=cfg)
+    soon = (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat()
+    good_seller = {"feedbackPercentage": "99.6", "feedbackScore": 1500}
+    items = [
+        {"title": "Sony A6000 body", "currentBidPrice": {"value": "120"},
+         "buyingOptions": ["AUCTION"], "itemId": "1", "itemWebUrl": "u1",
+         "itemEndDate": soon, "condition": "Used", "conditionId": "3000",
+         "seller": good_seller},                                       # clean -> keep
+        {"title": "Sony A6000 body", "currentBidPrice": {"value": "60"},
+         "buyingOptions": ["AUCTION"], "itemId": "2", "itemWebUrl": "u2",
+         "itemEndDate": soon, "condition": "For parts or not working",
+         "conditionId": "7000", "seller": good_seller},                # broken -> drop
+        {"title": "Sony A6000 body spares or repair", "currentBidPrice": {"value": "55"},
+         "buyingOptions": ["AUCTION"], "itemId": "3", "itemWebUrl": "u3",
+         "itemEndDate": soon, "condition": "Used", "conditionId": "3000",
+         "seller": good_seller},                                       # spares title -> drop
+        {"title": "Sony A6000 body", "currentBidPrice": {"value": "120"},
+         "buyingOptions": ["AUCTION"], "itemId": "4", "itemWebUrl": "u4",
+         "itemEndDate": soon, "condition": "Used", "conditionId": "3000",
+         "seller": {"feedbackPercentage": "94.0", "feedbackScore": 30}},  # low fb -> drop
+    ]
+    monkeypatch.setattr(src, "_search", lambda q, **kw: items if "A6000" in q else [])
+    targets = src.fetch_targets()
+    assert [t.listing_id for t in targets] == ["1"]
+    assert targets[0].condition == "Used"
+    assert targets[0].seller_feedback_pct == 99.6
+
+
 def test_get_alerter_degrades_to_print_without_callmebot(monkeypatch):
     from valbot.alert import get_alerter
     monkeypatch.delenv("CALLMEBOT_PHONE", raising=False)

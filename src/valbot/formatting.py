@@ -22,6 +22,19 @@ def format_alert(a: Assessment) -> str:
         # An auction that also offers Buy-It-Now: snap it if the BIN sits under our max bid.
         snap = "  ← under your max, snap it" if a.listing.bin_price <= a.max_bid else ""
         lines.append(f"Buy It Now:  £{a.listing.bin_price:.2f}{snap}")
+    # Quality / seller at a glance — value assumes a working, average-condition item, so
+    # eyeball these before bidding (shutter count, faults, accessories live in the listing).
+    qual = []
+    if a.listing.condition:
+        qual.append(a.listing.condition)
+    if a.listing.seller_feedback_pct is not None:
+        score = a.listing.seller_feedback_score
+        qual.append(
+            f"seller {a.listing.seller_feedback_pct:.0f}%"
+            + (f" ({score})" if score is not None else "")
+        )
+    if qual:
+        lines.append("Condition:   " + "  ·  ".join(qual))
     lines += [
         "",
         f"Point value:        £{v.point_value:.2f}",
