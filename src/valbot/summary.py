@@ -15,6 +15,8 @@ import json
 from datetime import datetime, timedelta, timezone
 from pathlib import Path
 
+from .models import ref_code
+
 _LONDON = "Europe/London"
 
 
@@ -99,8 +101,11 @@ def _budget_line(cfg: dict, data_dir: Path, *, suffix: str = "") -> str:
 
 def _fmt_alert(r: dict) -> str:
     pred = r.get("prediction", {}) or {}
+    # Lead with the ref code so this line doubles as a batch-labelling worksheet: reply
+    # "<code> good/bad" once a day. Fall back to deriving it for pre-ref records.
+    code = r.get("ref") or ref_code(str(r.get("listing_id", "")))
     return (
-        f"• {r.get('card', '?')} — £{r.get('current_price', '?')} "
+        f"• [{code}] {r.get('card', '?')} — £{r.get('current_price', '?')} "
         f"(max £{pred.get('max_bid', '?')}, ~£{pred.get('expected_profit', '?')} profit)"
     )
 
@@ -118,7 +123,9 @@ def build_daily_summary(cfg: dict, data_dir: str | Path, *, now: datetime | None
     header = f"📷 valbot daily — {sector} — {today:%a %d %b %Y}"
     assessed_line = f"Assessed {len(assessed)} listing(s) across today's hourly runs."
     if alerts:
-        body = "\n".join([f"🎯 {len(alerts)} bargain alert(s) today:"] + [_fmt_alert(r) for r in alerts[:5]])
+        lines = [f"🎯 {len(alerts)} bargain alert(s) today:"] + [_fmt_alert(r) for r in alerts[:8]]
+        lines.append("↳ label them: reply e.g. “<code> good” / “<code> bad – why”.")
+        body = "\n".join(lines)
     else:
         body = "✅ 0 bargains found today. All quiet — the bot is alive and watching."
     return f"{header}\n{assessed_line}\n{body}{budget_line}"
