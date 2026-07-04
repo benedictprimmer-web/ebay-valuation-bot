@@ -2,8 +2,18 @@
 
 from __future__ import annotations
 
+import hashlib
 from dataclasses import dataclass, field, asdict
 from typing import Optional
+
+
+def ref_code(listing_id: str) -> str:
+    """Short, stable, human-quotable code for an alert (so a reply can be matched to it).
+
+    Derived from the listing id, so the same listing always gets the same code — you can
+    reply "a1b2c3 good" days later and it still resolves. WhatsApp replies don't thread,
+    which is exactly why the alert has to carry a code you can quote back."""
+    return hashlib.sha1(str(listing_id).encode("utf-8")).hexdigest()[:6]
 
 
 @dataclass(frozen=True)

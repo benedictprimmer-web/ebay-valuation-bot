@@ -3,7 +3,11 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from valbot.calibrate import compute_calibration, format_calibration  # noqa: E402
+from valbot.calibrate import (  # noqa: E402
+    compute_calibration,
+    compute_human_feedback,
+    format_calibration,
+)
 
 
 def rec(point_value, ratio_used, conservative_value, resold, won=True,
@@ -55,3 +59,44 @@ def test_profit_bias_reported():
     s = compute_calibration(recs)
     assert s["profit_bias"] == 5.0  # under-promised by £5
     assert "under-promised" in format_calibration(s)
+
+
+def _verdict_rec(card, verdict, point_value=200.0, fair_value=None):
+    return {
+        "card": card,
+        "prediction": {"point_value": point_value},
+        "human_verdict": {"verdict": verdict, "fair_value": fair_value, "reason": None},
+        "result": {"resold_price": None},
+    }
+
+
+def test_human_feedback_counts_and_worst_niches():
+    recs = [
+        _verdict_rec("Sony A6000", "bad"),
+        _verdict_rec("Sony A6000", "bad"),
+        _verdict_rec("Sony A6000", "good"),
+        _verdict_rec("Nikon D610", "good"),
+    ]
+    h = compute_human_feedback(recs)
+    assert h["labeled"] == 4 and h["good"] == 2 and h["bad"] == 2
+    worst = h["worst_niches"][0]
+    assert worst["model"] == "Sony A6000" and worst["bad"] == 2
+
+    # human section renders even with no resolved flips
+    out = format_calibration(compute_calibration(recs))
+    assert "Human verdicts:" in out and "Sony A6000" in out
+
+
+def test_human_fair_value_flags_overvaluation():
+    # you think it's worth £150 vs our £200 point value -> ratio 0.75 -> we OVER-value
+    recs = [_verdict_rec("Sony A6000", "bad", point_value=200.0, fair_value=150.0)]
+    h = compute_human_feedback(recs)
+    n = h["value_nudges"][0]
+    assert n["model"] == "Sony A6000" and n["your_fair_vs_our_value"] == 0.75
+    assert "OVER-valuing" in format_calibration(compute_calibration(recs))
+
+
+def test_no_verdicts_is_graceful():
+    h = compute_human_feedback([{"card": "x", "result": {"resold_price": None}}])
+    assert h == {"labeled": 0, "good": 0, "bad": 0}
+    assert "none yet" in format_calibration(compute_calibration([]))

@@ -36,6 +36,13 @@
   niche scatter builds a time series (cache-served, ~0 pulls after warmup).
 - `data/outcomes.json` — alerts with predictions; fill `result` when a flip resolves →
   `calibrate.py` tunes the ratio/floors from reality.
+- HUMAN-IN-THE-LOOP: each alert carries a short `ref` code (models.ref_code) shown in the
+  WhatsApp. Your at-a-glance verdict is captured by `python verdict.py <ref> good|bad
+  [reason] [--fair £]` → Store.record_verdict fills `human_verdict` on the record →
+  calibrate.py surfaces distrusted niches + "your fair vs our value" (an EARLY signal, no
+  need to wait for a resale). Channel-agnostic: a Telegram/WhatsApp poller would call the
+  same record_verdict. CallMeBot is SEND-ONLY, so the reply must arrive via another pipe
+  (relay-to-Claude today; Telegram/Meta-WhatsApp webhook later).
 
 ## Two feeds — only ONE is metered
 - SOLD comps (ebay-average-selling-price, 50/month) = valuation. Cached 30 days, so

@@ -13,7 +13,7 @@ import json
 from datetime import datetime, timezone
 from pathlib import Path
 
-from .models import Assessment
+from .models import Assessment, ref_code
 
 
 def _utcnow() -> str:
@@ -88,6 +88,7 @@ class Store:
         record = {
             "logged_at": _utcnow(),
             "listing_id": a.listing.listing_id,
+            "ref": ref_code(a.listing.listing_id),  # quotable code for a human reply
             "url": a.listing.url,
             "card": a.valuation.card.label() if a.valuation else None,
             "current_price": a.listing.price,
@@ -110,6 +111,14 @@ class Store:
                 "ratio_used": a.valuation.ratio if a.valuation else None,
             },
             "fees": a.fee_breakdown,
+            # Your at-a-glance judgement, filled by record_verdict() when you reply to the
+            # alert. A cheap, EARLY training label (vs waiting weeks for a real flip).
+            "human_verdict": {
+                "verdict": None,      # "good" | "bad"
+                "fair_value": None,   # your own £ estimate of what it's worth, optional
+                "reason": None,
+                "at": None,
+            },
             "result": {  # fill in later for calibration
                 "won": None,
                 "final_price": None,
@@ -125,3 +134,44 @@ class Store:
         existing.append(record)
         with open(self.outcomes_path, "w", encoding="utf-8") as f:
             json.dump(existing, f, indent=2)
+
+    def record_verdict(
+        self,
+        token: str,
+        verdict: str,
+        *,
+        reason: str | None = None,
+        fair_value: float | None = None,
+    ) -> dict | None:
+        """Attach a human judgement to the alert matching `token` (its ref code or
+        listing id). Fills the newest matching record. Returns it, or None if no match.
+
+        This is the channel-agnostic capture point: whether the verdict arrives via a
+        relayed chat message, a Telegram button, or a WhatsApp webhook, it lands here."""
+        v = verdict.strip().lower()
+        if v in ("good", "y", "yes", "👍", "up"):
+            v = "good"
+        elif v in ("bad", "n", "no", "👎", "down"):
+            v = "bad"
+        else:
+            raise ValueError(f"verdict must be good/bad (got {verdict!r})")
+        if not self.outcomes_path.exists():
+            return None
+        with open(self.outcomes_path, "r", encoding="utf-8") as f:
+            records = json.load(f)
+        token = str(token).strip().lstrip("#").lower()
+        match = None
+        for r in records:  # newest match wins
+            if str(r.get("ref", "")).lower() == token or str(r.get("listing_id", "")).lower() == token:
+                match = r
+        if match is None:
+            return None
+        match["human_verdict"] = {
+            "verdict": v,
+            "fair_value": float(fair_value) if fair_value is not None else None,
+            "reason": reason,
+            "at": _utcnow(),
+        }
+        with open(self.outcomes_path, "w", encoding="utf-8") as f:
+            json.dump(records, f, indent=2)
+        return match

@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from .models import Assessment
+from .models import Assessment, ref_code
 from .targets import TargetResult, verdict
 
 
@@ -49,6 +49,8 @@ def format_alert(a: Assessment) -> str:
         a.listing.url,
         "",
         "Read-only alert. You place the bid.",
+        f"Rate it → reply “{ref_code(a.listing.listing_id)} good” or "
+        f"“{ref_code(a.listing.listing_id)} bad – why”. It tunes the model.",
     ]
     return "\n".join(lines)
 
