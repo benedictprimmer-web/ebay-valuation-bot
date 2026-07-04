@@ -250,5 +250,113 @@
       "realised_profit": null,
       "notes": null
     }
+  },
+  {
+    "logged_at": "2026-07-04T15:04:57.415297+00:00",
+    "listing_id": "v1|168444688055|0",
+    "url": "https://www.ebay.co.uk/itm/168444688055?_skw=Sony+A6000+body&hash=item273815f6b7:g:7UwAAeSwDlRqKEQM",
+    "card": "Sony A6000",
+    "current_price": 139.95,
+    "ends_at": null,
+    "prediction": {
+      "max_bid": 191.07,
+      "point_value": 293.0,
+      "conservative_value": 282.26,
+      "expected_profit": 103.98,
+      "margin": 0.3684,
+      "confidence": 0.865,
+      "n_comps": 14,
+      "rel_dispersion": 0.0366,
+      "ratio_used": 1.0
+    },
+    "fees": {
+      "sell_fvf": 19.88,
+      "sell_regulatory": 0.99,
+      "sell_vat_on_fees": 4.17,
+      "sell_total": 25.04,
+      "buyer_protection": 6.3,
+      "postage_in": 3.5,
+      "postage_out": 3.5,
+      "required_profit": 50.81
+    },
+    "result": {
+      "won": null,
+      "final_price": null,
+      "resold_price": null,
+      "realised_profit": null,
+      "notes": null
+    }
+  },
+  {
+    "logged_at": "2026-07-04T15:04:58.015792+00:00",
+    "listing_id": "v1|267712124104|0",
+    "url": "https://www.ebay.co.uk/itm/267712124104?_skw=Sony+A6000+body&hash=item3e54e2d4c8:g:gzMAAeSwDR1qQV3c",
+    "card": "Sony A6000",
+    "current_price": 140.56,
+    "ends_at": null,
+    "prediction": {
+      "max_bid": 191.07,
+      "point_value": 293.0,
+      "conservative_value": 282.26,
+      "expected_profit": 103.34,
+      "margin": 0.3661,
+      "confidence": 0.865,
+      "n_comps": 14,
+      "rel_dispersion": 0.0366,
+      "ratio_used": 1.0
+    },
+    "fees": {
+      "sell_fvf": 19.88,
+      "sell_regulatory": 0.99,
+      "sell_vat_on_fees": 4.17,
+      "sell_total": 25.04,
+      "buyer_protection": 6.32,
+      "postage_in": 3.5,
+      "postage_out": 3.5,
+      "required_profit": 50.81
+    },
+    "result": {
+      "won": null,
+      "final_price": null,
+      "resold_price": null,
+      "realised_profit": null,
+      "notes": null
+    }
+  },
+  {
+    "logged_at": "2026-07-04T15:04:58.596245+00:00",
+    "listing_id": "v1|178263286745|0",
+    "url": "https://www.ebay.co.uk/itm/178263286745?_skw=Nikon+D610+body&hash=item298151e3d9:g:pOsAAeSw9fxqPUZm",
+    "card": "Nikon D610",
+    "current_price": 95.09,
+    "ends_at": "2026-07-05T19:00:00.000Z",
+    "prediction": {
+      "max_bid": 141.8,
+      "point_value": 256.17,
+      "conservative_value": 212.35,
+      "expected_profit": 86.81,
+      "margin": 0.4088,
+      "confidence": 0.658,
+      "n_comps": 45,
+      "rel_dispersion": 0.1711,
+      "ratio_used": 1.0
+    },
+    "fees": {
+      "sell_fvf": 15.05,
+      "sell_regulatory": 0.74,
+      "sell_vat_on_fees": 3.16,
+      "sell_total": 18.95,
+      "buyer_protection": 4.5,
+      "postage_in": 3.5,
+      "postage_out": 3.5,
+      "required_profit": 38.22
+    },
+    "result": {
+      "won": null,
+      "final_price": null,
+      "resold_price": null,
+      "realised_profit": null,
+      "notes": null
+    }
   }
 ]
