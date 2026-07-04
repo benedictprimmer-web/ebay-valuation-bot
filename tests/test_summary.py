@@ -5,11 +5,12 @@ from pathlib import Path
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from valbot.summary import build_daily_summary  # noqa: E402
+from valbot.summary import build_daily_summary, build_weekly_digest  # noqa: E402
 
 CFG = {
     "active_sector": "cameras-lenses",
     "thirdparty": {"sold": {"monthly_pull_budget": 50}},
+    "search": {"queries": ["a", "b", "c"]},
 }
 
 
@@ -70,3 +71,22 @@ def test_summary_handles_missing_files(tmp_path):
     msg = build_daily_summary(CFG, tmp_path, now=_now())
     assert "0 bargains found today" in msg
     assert "Assessed 0 listing(s)" in msg
+
+
+def test_weekly_digest_counts_across_7_day_window(tmp_path):
+    # now = 4 Jul; window = 28 Jun..4 Jul. The 30 Jun observation falls INSIDE the week
+    # (but not "today"); the 1 Jun alert falls OUTSIDE and must be excluded.
+    _seed(tmp_path, with_alert=True)
+    msg = build_weekly_digest(CFG, tmp_path, now=_now())
+    assert "1 bargain alert(s) across 1 model(s)" in msg
+    assert "Sony A6000" in msg
+    assert "assessed 3 listing(s)" in msg          # T1, T2, and 30-Jun OLDOBS (in window)
+    assert "3 niches watched" in msg
+    assert "Nikon D610" not in msg                 # 1-Jun alert is outside the 7-day window
+
+
+def test_weekly_digest_zero_week_still_sends(tmp_path):
+    _seed(tmp_path, with_alert=False)
+    msg = build_weekly_digest(CFG, tmp_path, now=_now())
+    assert "0 bargains this week" in msg
+    assert "alive and watching" in msg

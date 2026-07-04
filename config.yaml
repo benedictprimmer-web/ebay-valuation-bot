@@ -227,6 +227,20 @@ sectors:
           - "Fujifilm X-T10 body"    # £150-220, APS-C value pick
           - "Olympus OM-D E-M10 Mark III body"  # £200-300, MFT
           - "Panasonic Lumix G80 body"  # £200-300, weather-sealed MFT
+          # LENS niches (added 2026-07). First-party only for now — clean single-mount
+          # identity (a Sigma/Tamron 30mm exists in several mounts under one key, which
+          # would over-merge comps; revisit with mount-aware keys). The body-only excludes
+          # above (zoom/kit/with-lens) do NOT apply to these, so zoom lenses keep their comps.
+          - "Canon EF 50mm f1.8 STM"     # nifty fifty — £60-100, enormous volume
+          - "Canon RF 50mm f1.8 STM"     # £140-180, mirrorless nifty fifty
+          - "Canon EF 40mm f2.8 STM"     # pancake — £90-140
+          - "Nikon AF-S 50mm f1.8 G"     # £90-130, high volume
+          - "Nikon AF-S 35mm f1.8 G"     # £110-150, DX standard prime
+          - "Sony FE 50mm f1.8"          # £120-170
+          - "Sony E 35mm f1.8 OSS"       # £200-280, APS-C standard prime
+          - "Fujifilm XF 35mm f2"        # £200-280, weather-resistant prime
+          - "Panasonic Lumix 25mm f1.7"  # £90-140, MFT standard prime
+          - "Canon EF 24-105mm f4 L"     # £200-320, pro standard zoom (data even if over cap)
       # SOLD-COMP SOURCE — real UK sold prices via RapidAPI (ADR-011 gap now closed).
       # Provider: "eBay Average Selling Price" (ebay-average-selling-price.p.rapidapi.com,
       # colindaniels/caffeindev). POST /findCompletedItems returns true completed-sale
@@ -251,11 +265,14 @@ sectors:
           # genuine used single bodies. Substring match, case-insensitive.
           # NOTE: exclude keywords suit BODY niches; revisit if lens niches are added.
           exclude_conditions: ["new", "parts", "spares", "faulty", "not working"]
-          # Bundle-specific phrasing only — NOT bare "lens" (that would wrongly drop
-          # legit "body only, no lens" listings). Bundles with an explicit focal length
-          # (e.g. "16-50mm") are already excluded upstream: the parser reads a focal as a
-          # LENS identity, so it never matches a body niche.
-          exclude_title_keywords: ["bundle", "lenses", "with lens", "+ lens", "and lens", "zoom", "kit", "grip", "joblot", "job lot", "twin"]
+          # Universal: multi-item lots / bundles pollute ANY single-item comp set (body
+          # OR lens). NOT bare "lens" — that would drop legit "body only, no lens" listings.
+          exclude_title_keywords: ["bundle", "lenses", "joblot", "job lot", "twin"]
+          # Body-only (applied by _parse only when kind == "body"): a body sold WITH a
+          # lens/kit/grip. These must NOT apply to lens niches — a zoom IS a lens, a kit
+          # lens IS the item — or they'd gut the lens comp set. Lens niches keep only the
+          # universal list above.
+          exclude_title_keywords_body: ["with lens", "+ lens", "and lens", "zoom", "kit", "grip"]
           # Budget guard (see CLAUDE.md). Sold medians are near-stationary, so cache each
           # model's response for ~a month: a re-run then costs 0 pulls. The monthly ledger
           # refuses live pulls once 50 are spent — 1 pull/model/month => up to 50 models.

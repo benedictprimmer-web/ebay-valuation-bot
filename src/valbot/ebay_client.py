@@ -503,14 +503,20 @@ class ThirdPartySource:
             self.cache.put(endpoint["url"], query, items)
         return items
 
-    def _parse(self, items: list[dict], endpoint: dict, tokens, is_auction) -> list[Listing]:
+    def _parse(
+        self, items: list[dict], endpoint: dict, tokens, is_auction, kind=None
+    ) -> list[Listing]:
         f = endpoint["fields"]
         fx = self._fx_factor(endpoint)
         # Optional client-side cleaning (applied to cached raw items too -> 0 extra pulls):
         # drop new/parts conditions and multi-item bundles so the comp distribution
-        # reflects genuine used single bodies, not boxed kits or spares/repair units.
+        # reflects genuine used single items, not boxed kits or spares/repair units.
         excl_cond = [c.lower() for c in endpoint.get("exclude_conditions", [])]
         excl_kw = [k.lower() for k in endpoint.get("exclude_title_keywords", [])]
+        # Body-only excludes (kit/zoom/"with lens"...) would wrongly gut a LENS comp set
+        # — a zoom IS a lens, a kit lens IS the item. Apply them only when valuing a body.
+        if kind == "body":
+            excl_kw += [k.lower() for k in endpoint.get("exclude_title_keywords_body", [])]
         out: list[Listing] = []
         for item in items:
             title = str(dig(item, f["title"]) or "")
@@ -551,7 +557,9 @@ class ThirdPartySource:
         if self.identity == "camera":
             query = card.search_query()  # Roman-numeral versions so "A7 II" matches listings
             items = self._get(self.tp["sold"], query)
-            comps = self._parse(items, self.tp["sold"], [], False)
+            comps = self._parse(
+                items, self.tp["sold"], [], False, kind=getattr(card, "kind", None)
+            )
             return [c for c in comps if c.card.matches(card)]
         query = f"{card.player} {card.set_name} {card.grader} {card.grade:g}"
         items = self._get(self.tp["sold"], query)

@@ -1,0 +1,43 @@
+name: weekly-digest
+
+# One WhatsApp a week (Sunday evening) digesting the cameras lane's last 7 days: total
+# bargain alerts, how many models they spanned, the top deals, and monthly budget used.
+# Reads only the committed logs — no eBay/RapidAPI calls, 0 of the 50 monthly sold pulls.
+#
+# 18:00 UTC Sunday = 19:00 BST. GitHub cron is UTC and does NOT follow DST, so from late
+# Oct to late Mar this lands at 18:00 GMT (6pm). Adjust the hour then for a fixed 7pm.
+on:
+  schedule:
+    - cron: "0 18 * * 0"   # Sunday
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: "print only, don't send WhatsApp"
+        type: boolean
+        default: false
+
+permissions:
+  contents: read
+
+concurrency:
+  group: valbot-weekly-digest
+  cancel-in-progress: false
+
+jobs:
+  digest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - name: Install deps
+        run: pip install -r requirements.txt
+
+      - name: Send weekly digest
+        env:
+          CALLMEBOT_PHONE: ${{ secrets.CALLMEBOT_PHONE }}
+          CALLMEBOT_APIKEY: ${{ secrets.CALLMEBOT_APIKEY }}
+        run: |
+          python run.py --sector cameras-lenses --weekly-digest \
+            ${{ (github.event.inputs.dry_run == 'true') && '--dry-run' || ' ' }}
