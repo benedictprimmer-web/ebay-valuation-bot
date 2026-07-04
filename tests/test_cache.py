@@ -116,3 +116,26 @@ def test_get_refuses_pull_when_budget_spent(tmp_path, monkeypatch):
 
     with pytest.raises(BudgetExceeded):
         src._get(cfg["thirdparty"]["sold"], "Nikon D610")  # uncached -> would pull
+
+
+def test_per_run_pull_cap_bounds_one_run(tmp_path, monkeypatch):
+    """The per-run cap stops a single cold-cache run from draining the monthly budget:
+    it pulls up to the cap, then refuses further live pulls (caller degrades to no comps)."""
+    src, cfg, cache = _cameras_src(tmp_path, _Clock(T0))
+    endpoint = dict(cfg["thirdparty"]["sold"])
+    endpoint["max_pulls_per_run"] = 2  # tighten for the test
+
+    def fake_post(url, headers=None, json=None, timeout=None):
+        return _FakeResp(_sold_response())
+
+    import requests
+    monkeypatch.setattr(requests, "post", fake_post)
+
+    src._get(endpoint, "Nikon D610")     # miss -> pull 1
+    src._get(endpoint, "Nikon D7000")    # miss -> pull 2
+    assert cache.pulls_this_month() == 2
+    with pytest.raises(BudgetExceeded):
+        src._get(endpoint, "Canon 600D")  # 3rd distinct miss -> over per-run cap
+    # a query already cached this run still serves for free, cap notwithstanding
+    assert src._get(endpoint, "Nikon D610") is not None
+    assert cache.pulls_this_month() == 2  # monthly ledger untouched by the refusal

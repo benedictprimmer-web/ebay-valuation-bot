@@ -174,11 +174,17 @@ sectors:
         usd_to_gbp: 1.0 # UK GBP comps only — no USD conversion, no US sourcing
       thresholds:
         price_cap: 250.0 # learning mode: lower risk, more volume; raise once niches confirmed
-        profit_floor: 20.0 # learning mode: see more deals, collect data; tighten from outcomes
+        # Narrowed margins (learning mode): accept thinner-but-real deals so more flows
+        # through and the dataset actually builds. Tighten from outcomes once we have data.
+        profit_floor: 12.0 # was 20 — lower bar to surface more candidates
+        margin_floor: 0.18 # was 0.25 (base default) — demand less headroom while learning
       search:
-        ending_within_hours: 24
-        require_buy_it_now: true  # only surface auctions that ALSO offer Buy It Now
-                                  # (a known price you can snap if it's under your max bid)
+        # Auctions ending within this window are surfaced; a Buy-It-Now listing is
+        # snap-buyable ANY time, so the window doesn't gate it (see _fetch_camera_targets).
+        ending_within_hours: 48
+        require_buy_it_now: false  # surface BOTH pure auctions and Buy-It-Now listings.
+                                   # BINs under your max bid are snap-buys; auctions still
+                                   # honour the ending window above.
         category_ids: {body: "31388", lens: "3323"}  # Browse API allows 1 ID per request
                                                       # 31388 Digital Cameras, 3323 Camera Lenses leaf
                                                       # NOT 78997 (Lenses & Filters parent — includes hoods)
@@ -198,6 +204,19 @@ sectors:
           - "Nikon D5100 body"       # £90-180, high volume
           - "Nikon D7000 body"       # £120-220, high volume (prosumer)
           - "Panasonic Lumix G7 body" # £170-270, 4K draw, decent volume
+          # Added 2026-07 — all resolve to an exact identity (verified). Each new model
+          # costs ≤1 sold-pull/month (30-day cache), so this stays well under the 50 cap.
+          - "Sony A6300 body"        # £150-230, mid A6x00 volume
+          - "Sony A6100 body"        # £200-290, newer sensor, decent volume
+          - "Nikon D5300 body"       # £90-180, huge entry-DSLR volume
+          - "Nikon D5600 body"       # £150-240, high volume
+          - "Nikon D3300 body"       # £70-150, huge volume
+          - "Fujifilm X-T20 body"    # £180-270, strong APS-C demand
+          - "Fujifilm X-E3 body"     # £150-250, rangefinder-style draw
+          - "Canon EOS 250D body"    # £200-290, current entry DSLR, high volume
+          - "Olympus OM-D E-M10 Mark II body"  # £120-200, MFT entry, good volume
+          # Parser gaps to fix before these resolve (silently skipped today):
+          # Canon EOS M50, Nikon D90, Panasonic GX80.
       # SOLD-COMP SOURCE — real UK sold prices via RapidAPI (ADR-011 gap now closed).
       # Provider: "eBay Average Selling Price" (ebay-average-selling-price.p.rapidapi.com,
       # colindaniels/caffeindev). POST /findCompletedItems returns true completed-sale
@@ -231,4 +250,6 @@ sectors:
           # model's response for ~a month: a re-run then costs 0 pulls. The monthly ledger
           # refuses live pulls once 50 are spent — 1 pull/model/month => up to 50 models.
           cache_days: 30
-          monthly_pull_budget: 50
+          monthly_pull_budget: 50    # hard monthly ceiling (ledger)
+          max_pulls_per_run: 12       # per-run burst cap: one cold-cache run can't eat
+                                      # the whole month. Skipped models fetch next run.

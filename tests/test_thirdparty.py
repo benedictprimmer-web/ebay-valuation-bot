@@ -142,7 +142,7 @@ def test_browse_camera_targets_filter_to_model_window_and_capture_bin(monkeypatc
     cfg = apply_sector(load_config(), "cameras-lenses")
     src = BrowseAPISource(app_id="x", cert_id="y", cfg=cfg)
     soon = (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat()
-    late = (datetime.now(timezone.utc) + timedelta(hours=48)).isoformat()
+    late = (datetime.now(timezone.utc) + timedelta(hours=72)).isoformat()
     items = [
         {"title": "Sony A6000 body black", "currentBidPrice": {"value": "120"},
          "price": {"value": "300"}, "buyingOptions": ["AUCTION", "FIXED_PRICE"],
@@ -152,10 +152,10 @@ def test_browse_camera_targets_filter_to_model_window_and_capture_bin(monkeypatc
          "itemEndDate": soon},                                           # accessory -> drop
         {"title": "Sony A6000 body", "currentBidPrice": {"value": "150"},
          "buyingOptions": ["AUCTION"], "itemId": "3", "itemWebUrl": "u3",
-         "itemEndDate": late},                                           # ends >24h -> drop
+         "itemEndDate": late},                                # pure auction >48h -> drop
     ]
     monkeypatch.setattr(src, "_search",
-                        lambda q, extra_filter="", category_id="": items if "A6000" in q else [])
+                        lambda q, **kw: items if "A6000" in q else [])
     targets = src.fetch_targets()
     assert len(targets) == 1
     t = targets[0]
@@ -164,26 +164,34 @@ def test_browse_camera_targets_filter_to_model_window_and_capture_bin(monkeypatc
     assert t.bin_price == 300.0                 # Buy-It-Now captured
 
 
-def test_browse_camera_targets_require_buy_it_now(monkeypatch):
+def test_browse_camera_targets_include_bin_anytime_and_auctions(monkeypatch):
+    """require_buy_it_now is off: surface BOTH Buy-It-Now (any end time) and pure
+    auctions ending inside the window; drop pure auctions beyond it."""
     from datetime import datetime, timedelta, timezone
     from valbot.ebay_client import BrowseAPISource
 
     cfg = apply_sector(load_config(), "cameras-lenses")
-    assert cfg["search"]["require_buy_it_now"] is True  # cameras default
+    assert cfg["search"]["require_buy_it_now"] is False  # cameras default (loosened)
     src = BrowseAPISource(app_id="x", cert_id="y", cfg=cfg)
     soon = (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat()
+    late = (datetime.now(timezone.utc) + timedelta(hours=72)).isoformat()
     items = [
+        {"title": "Sony A6000 body", "price": {"value": "300"},
+         "buyingOptions": ["FIXED_PRICE"], "itemId": "1", "itemWebUrl": "u1"},  # BIN, no end -> keep
         {"title": "Sony A6000 body", "currentBidPrice": {"value": "120"},
-         "price": {"value": "300"}, "buyingOptions": ["AUCTION", "FIXED_PRICE"],
-         "itemId": "1", "itemWebUrl": "u1", "itemEndDate": soon},   # has BIN -> keep
-        {"title": "Sony A6000 body", "currentBidPrice": {"value": "110"},
          "buyingOptions": ["AUCTION"], "itemId": "2", "itemWebUrl": "u2",
-         "itemEndDate": soon},                                       # no BIN -> drop
+         "itemEndDate": soon},                                       # auction in window -> keep
+        {"title": "Sony A6000 body", "currentBidPrice": {"value": "110"},
+         "buyingOptions": ["AUCTION"], "itemId": "3", "itemWebUrl": "u3",
+         "itemEndDate": late},                                       # auction >48h -> drop
     ]
     monkeypatch.setattr(src, "_search",
-                        lambda q, extra_filter="", category_id="": items if "A6000" in q else [])
+                        lambda q, **kw: items if "A6000" in q else [])
     targets = src.fetch_targets()
-    assert len(targets) == 1 and targets[0].bin_price == 300.0
+    assert len(targets) == 2
+    bins = {t.listing_id: t for t in targets}
+    assert bins["1"].bin_price == 300.0 and bins["1"].is_auction is False  # snap-buy anytime
+    assert bins["2"].is_auction is True and bins["2"].bin_price is None     # live auction, in window
 
 
 def test_get_alerter_degrades_to_print_without_callmebot(monkeypatch):
