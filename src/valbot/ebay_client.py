@@ -231,10 +231,17 @@ class BrowseAPISource:
         }
 
     # -- search --------------------------------------------------------------
-    def _search(self, query: str, extra_filter: str = "", category_id: str = "") -> list[dict]:
+    def _search(
+        self,
+        query: str,
+        *,
+        buying_options: str = "AUCTION",
+        extra_filter: str = "",
+        category_id: str = "",
+    ) -> list[dict]:
         import requests
 
-        filt = "buyingOptions:{AUCTION}"
+        filt = f"buyingOptions:{{{buying_options}}}"
         if extra_filter:
             filt += f",{extra_filter}"
         params = {
@@ -320,11 +327,17 @@ class BrowseAPISource:
         return out
 
     def _fetch_camera_targets(self, window) -> list[Listing]:
-        """Auctions ending within `window`, restricted to the EXACT niche model each
-        query is for. A raw "Sony A6000 body" auction search also returns lenses/straps;
-        keeping only listings that match the intended body (plus the body category filter
-        and price floor) means we never value accessories — and comps stay cache hits, so
-        a live run spends 0 sold pulls."""
+        """Buyable candidates restricted to the EXACT niche model each query is for.
+
+        Searches BOTH auctions and fixed-price/Buy-It-Now listings. A raw "Sony A6000
+        body" search also returns lenses/straps; keeping only listings that match the
+        intended body (plus the body category filter and price floor) means we never
+        value accessories — and comps stay cache hits, so a live run spends 0 sold pulls.
+
+        The ending `window` gates ONLY pure auctions (they vanish when they close). A
+        listing with a Buy-It-Now price — a fixed-price listing, or an auction that also
+        offers BIN — is snap-buyable any time, so it's kept regardless of end time.
+        `require_buy_it_now` (default off) can restrict to snap-buyable listings only."""
         cat_map = self.search_cfg.get("category_ids") or {}
         floors = (self.cfg.get("valuation") or {}).get("comp_min_price") or {}
         require_bin = bool(self.search_cfg.get("require_buy_it_now"))
@@ -334,13 +347,17 @@ class BrowseAPISource:
             if not intended.resolved:
                 continue
             category_id = cat_map.get(intended.kind, "") if isinstance(cat_map, dict) else ""
-            for item in self._search(query, category_id=category_id):
+            for item in self._search(
+                query, buying_options="FIXED_PRICE|AUCTION", category_id=category_id
+            ):
                 lst = self._to_listing(item, [])
                 if not lst or not lst.card.matches(intended):
                     continue  # drop accessories / other models the keyword dragged in
-                if require_bin and lst.bin_price is None:
-                    continue  # keep only auctions that also offer Buy It Now
-                if window and not ends_within(lst.ends_at, window):
+                snap_buyable = lst.bin_price is not None or not lst.is_auction
+                if require_bin and not snap_buyable:
+                    continue  # optional: keep only listings you can Buy-It-Now
+                # Window applies only to pure auctions; a BIN is buyable any time.
+                if not snap_buyable and window and not ends_within(lst.ends_at, window):
                     continue
                 floor = floors.get(getattr(lst.card, "kind", ""))
                 if floor and lst.price < floor:
@@ -356,7 +373,7 @@ class BrowseAPISource:
             out: list[Listing] = []
             for item in self._search(
                 card.search_query(),
-                extra_filter="buyingOptions:{FIXED_PRICE|AUCTION}",
+                buying_options="FIXED_PRICE|AUCTION",
                 category_id=category_id,
             ):
                 lst = self._to_listing(item, [])
@@ -371,7 +388,7 @@ class BrowseAPISource:
         tokens = [t for t in query.lower().split() if not parse_grade(t)]
         out = []
         # Comps are active listings of any buying option, not just auctions.
-        for item in self._search(query, extra_filter="buyingOptions:{FIXED_PRICE|AUCTION}"):
+        for item in self._search(query, buying_options="FIXED_PRICE|AUCTION"):
             lst = self._to_listing(item, tokens)
             if lst and lst.card.grader == card.grader and lst.card.grade == card.grade:
                 out.append(lst)
@@ -404,6 +421,10 @@ class ThirdPartySource:
         # Optional SoldFeedCache: caches metered endpoints (cache_days) and enforces
         # their monthly_pull_budget. None in tests/mock -> every call hits the network.
         self.cache = cache
+        # Defense-in-depth: cap live pulls PER RUN (on top of the monthly ledger) so one
+        # cold-cache run can't burn the whole month's budget in a burst. Bounded here;
+        # skipped models simply fetch on the next run as the cache warms.
+        self._run_pulls = 0
 
     def _auth_for(self, endpoint: dict) -> dict:
         """Auth config for an endpoint, falling back to the provider default (RapidAPI)."""
@@ -453,6 +474,14 @@ class ThirdPartySource:
         if cached is not None:
             return cached
         if self.cache and cache_days:
+            run_cap = endpoint.get("max_pulls_per_run")
+            if run_cap is not None and self._run_pulls >= int(run_cap):
+                from .cache import BudgetExceeded
+
+                raise BudgetExceeded(
+                    f"per-run sold-feed pull cap reached ({run_cap}); skipping live "
+                    "pull (cached data still served)."
+                )
             self.cache.check_budget(endpoint.get("monthly_pull_budget"))
 
         # Some sold-price providers take the search term + filters as a JSON POST body
@@ -470,6 +499,7 @@ class ThirdPartySource:
         items = items or []
         if self.cache and cache_days:
             self.cache.record_pull()
+            self._run_pulls += 1
             self.cache.put(endpoint["url"], query, items)
         return items
 

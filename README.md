@@ -24,7 +24,7 @@ The bot hunts in the niches with the **biggest, most reliable** gaps.
 
 Every hour, for each camera model it watches, the bot:
 
-1. **Looks at auctions ending in the next 24 hours** (via eBay's official free data feed).
+1. **Looks at what's buyable now** — auctions ending in the next 48 hours, *plus* Buy-It-Now listings (which you can snap any time), via eBay's official free data feed.
 2. **Compares each one** against what that exact model *actually sold for recently* (real completed-sale prices).
 3. **Works out the most it would pay** — deliberately conservative, after all eBay fees and postage both ways.
 4. **Messages you on WhatsApp** if an auction's current price is below that number, with the max bid and the item link.
@@ -69,6 +69,26 @@ Sold-price data from eBay is messy, so the bot cleans and checks it before trust
 | **Live auctions** (eBay Browse API) | Finding what's for sale right now | **Free**, official eBay. No meaningful limit. |
 
 Because the "what's it worth" numbers are cached, the bot can check live auctions **every hour** and still spend only a handful of the 50 monthly lookups. Running it live is essentially free.
+
+### Backup sold-price providers (if the metered feed dies or the 50 cap bites)
+
+The sold feed is the one metered dependency, so it's worth knowing the fallbacks. The
+provider is **config, not code** — every field path lives under a sector's
+`thirdparty.sold` block, so swapping providers is a config edit, no logic change
+(`ebay_client.py` reads whatever URL / auth / field-mapping you point it at).
+
+| Option | Notes | When to reach for it |
+|---|---|---|
+| **eBay Marketplace Insights API** (official `getItemSalesReport` / sold data) | The real thing — true eBay UK sold prices, no third party. **Partner-gated**: needs an approved application. Free once granted. | The proper long-term home. Apply now; swap in when access lands (ADR-011). |
+| **Other RapidAPI sold-comp providers** (e.g. "Real-Time eBay Data" sold endpoints, "countdownapi"/Rainforest-style) | Same shape as today's feed, different quota/price. One `RAPIDAPI_KEY` covers all subscribed APIs. | Drop-in if `ebay-average-selling-price` degrades or rate-limits. |
+| **Terapeak** (inside eBay Seller Hub) | Deep sold-price history, but UI-only — no clean API. | Manual calibration / spot-checks, not automation. |
+| **Widen the cache window** (no new provider) | Sold medians are near-stationary; `cache_days: 30 → 45` cuts pulls further. | Cheapest mitigation if you're only worried about the 50 cap, not provider death. |
+
+Two guards already protect the 50/month feed regardless of provider: the **monthly
+ledger** (hard 50 ceiling) and a **per-run cap** (`max_pulls_per_run`, so one cold-cache
+run can't drain the month). A dead provider degrades to "no fresh comps" and skips —
+it never crashes a run. Wiring *automatic* failover to a second provider is a future
+option; today it's a one-line config swap.
 
 ---
 
