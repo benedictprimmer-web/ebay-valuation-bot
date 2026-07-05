@@ -393,6 +393,12 @@
       "resold_price": null,
       "realised_profit": null,
       "notes": null
+    },
+    "human_verdict": {
+      "verdict": "bad",
+      "fair_value": null,
+      "reason": "body only",
+      "at": "2026-07-05T08:02:12.608648+00:00"
     }
   }
 ]
