@@ -200,9 +200,14 @@ sectors:
         # it look like a bargain. Drop those, and skip risky sellers. Signals: the Browse
         # condition text, conditionId 7000 (For parts), the title, and seller feedback %.
         exclude_target_conditions: ["for parts", "not working", "spares", "faulty"]
+        # Broken / multi-item words that disqualify ANY target (body or lens).
         exclude_target_title_keywords: ["spares", "faulty", "not working", "for parts",
           "repair", "cracked", "damaged", "broken", "as-is", "as is", "read description",
-          "untested", "no power", "won't turn on", "for spares"]
+          "untested", "no power", "won't turn on", "for spares",
+          "bundle", "joblot", "job lot", "twin", "lenses"]
+        # BODY-ONLY guard: applied only when the niche is a body, so a body+lens kit isn't
+        # valued as a bare body. NOT applied to lens niches (a "kit lens" IS the lens).
+        exclude_target_title_keywords_body: ["with lens", "+ lens", "and lens", "kit", "grip", "zoom"]
         min_seller_feedback_pct: 98.0  # skip sellers below 98% positive (return/scam risk)
         category_ids: {body: "31388", lens: "3323"}  # Browse API allows 1 ID per request
                                                       # 31388 Digital Cameras, 3323 Camera Lenses leaf
@@ -296,6 +301,10 @@ sectors:
           # model's response for ~a month: a re-run then costs 0 pulls. The monthly ledger
           # refuses live pulls once 50 are spent — 1 pull/model/month => up to 50 models.
           cache_days: 30
+          # An EMPTY result (0 comps) is usually the metered feed rate-limiting, not a real
+          # "no sales" — caching it 30 days locks a live niche out for a month. Expire empties
+          # after 3 days so they self-heal on retry (bounded by the budget caps below).
+          empty_cache_days: 3
           monthly_pull_budget: 50    # hard monthly ceiling (ledger)
           max_pulls_per_run: 12       # per-run burst cap: one cold-cache run can't eat
                                       # the whole month. Skipped models fetch next run.

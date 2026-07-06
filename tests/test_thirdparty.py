@@ -194,6 +194,31 @@ def test_browse_camera_targets_include_bin_anytime_and_auctions(monkeypatch):
     assert bins["2"].is_auction is True and bins["2"].bin_price is None     # live auction, in window
 
 
+def test_body_niche_drops_kit_and_bundle_targets(monkeypatch):
+    """Body-only guard: a body+lens kit / bundle must not be valued as a bare body."""
+    from datetime import datetime, timedelta, timezone
+    from valbot.ebay_client import BrowseAPISource
+
+    cfg = apply_sector(load_config(), "cameras-lenses")
+    src = BrowseAPISource(app_id="x", cert_id="y", cfg=cfg)
+    soon = (datetime.now(timezone.utc) + timedelta(hours=1)).isoformat()
+    good_seller = {"feedbackPercentage": "99.5", "feedbackScore": 900}
+    def item(title, iid):
+        return {"title": title, "currentBidPrice": {"value": "150"},
+                "buyingOptions": ["AUCTION"], "itemId": iid, "itemWebUrl": "u" + iid,
+                "itemEndDate": soon, "condition": "Used", "conditionId": "3000",
+                "seller": good_seller}
+    items = [
+        item("Sony A6000 body", "1"),                    # bare body -> keep
+        item("Sony A6000 twin lens kit", "2"),           # kit/twin -> drop
+        item("Sony A6000 body with battery grip", "3"),  # grip -> drop
+        item("Sony A6000 body and lens bundle", "4"),    # and lens / bundle -> drop
+    ]
+    monkeypatch.setattr(src, "_search", lambda q, **kw: items if "A6000" in q else [])
+    targets = src.fetch_targets()
+    assert [t.listing_id for t in targets] == ["1"]
+
+
 def test_browse_camera_targets_quality_and_seller_gates(monkeypatch):
     """A broken/for-parts target, a spares title, and a low-feedback seller must all be
     dropped — only the clean used body from a good seller survives."""

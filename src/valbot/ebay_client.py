@@ -368,12 +368,17 @@ class BrowseAPISource:
         # bargain only because it's compared to WORKING comps), or bid via a dodgy seller.
         excl_cond = [c.lower() for c in self.search_cfg.get("exclude_target_conditions", [])]
         excl_kw = [k.lower() for k in self.search_cfg.get("exclude_target_title_keywords", [])]
+        # Body-only guard: a body target whose title says "with lens"/"kit"/"twin" is a
+        # bundle, not a bare body — valuing it against body-only comps mis-prices it. These
+        # apply ONLY to body niches (a "kit lens" IS the item for a lens niche).
+        excl_kw_body = [k.lower() for k in self.search_cfg.get("exclude_target_title_keywords_body", [])]
         min_fb = self.search_cfg.get("min_seller_feedback_pct")
         out: list[Listing] = []
         for query in self.search_cfg["queries"]:
             intended = parse_camera(query)
             if not intended.resolved:
                 continue
+            kw = excl_kw + (excl_kw_body if intended.kind == "body" else [])
             category_id = cat_map.get(intended.kind, "") if isinstance(cat_map, dict) else ""
             for item in self._search(
                 query, buying_options="FIXED_PRICE|AUCTION", category_id=category_id
@@ -381,8 +386,8 @@ class BrowseAPISource:
                 lst = self._to_listing(item, [])
                 if not lst or not lst.card.matches(intended):
                     continue  # drop accessories / other models the keyword dragged in
-                if not self._quality_ok(lst, excl_cond, excl_kw, min_fb):
-                    continue  # broken / for-parts / low-feedback -> never auto-alert
+                if not self._quality_ok(lst, excl_cond, kw, min_fb):
+                    continue  # broken / bundle / low-feedback -> never auto-alert
                 snap_buyable = lst.bin_price is not None or not lst.is_auction
                 if require_bin and not snap_buyable:
                     continue  # optional: keep only listings you can Buy-It-Now
@@ -517,9 +522,9 @@ class ThirdPartySource:
         # hit returns with zero network + zero pulls; a miss checks the monthly budget
         # BEFORE spending a pull (raises BudgetExceeded once it's gone), then records it.
         cache_days = endpoint.get("cache_days")
-        cached = self.cache.get(endpoint["url"], query, cache_days) if (
-            self.cache and cache_days
-        ) else None
+        cached = self.cache.get(
+            endpoint["url"], query, cache_days, endpoint.get("empty_cache_days")
+        ) if (self.cache and cache_days) else None
         if cached is not None:
             return cached
         if self.cache and cache_days:

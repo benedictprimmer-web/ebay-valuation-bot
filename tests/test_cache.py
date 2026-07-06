@@ -52,6 +52,24 @@ def test_cache_hit_within_ttl_and_miss_when_stale(tmp_path):
     assert cache.get("url", "Sony A6000", 30) is None
 
 
+def test_empty_result_expires_faster_than_real_data(tmp_path):
+    # An empty (0-comp) cache entry is usually a transient feed hiccup, so it must expire
+    # on the short empty TTL and be re-pulled — not lock a live niche out for 30 days.
+    clock = _Clock(T0)
+    cache = SoldFeedCache(tmp_path, now=clock)
+    cache.put("url", "Canon 100D", [])          # empty result
+    cache.put("url", "Canon 6D", [{"x": 1}])    # real data
+
+    clock.t = T0 + timedelta(days=2)             # within the 3-day empty TTL
+    assert cache.get("url", "Canon 100D", 30, empty_cache_days=3) == []
+    clock.t = T0 + timedelta(days=4)             # past it -> treated as a miss, re-pull
+    assert cache.get("url", "Canon 100D", 30, empty_cache_days=3) is None
+    # real data still lives the full cache_days
+    assert cache.get("url", "Canon 6D", 30, empty_cache_days=3) is not None
+    # without empty_cache_days, old behaviour: empty kept for the full window
+    assert cache.get("url", "Canon 100D", 30) == []
+
+
 def test_monthly_ledger_counts_and_rolls_over(tmp_path):
     clock = _Clock(T0)
     cache = SoldFeedCache(tmp_path, now=clock)

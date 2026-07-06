@@ -63,14 +63,29 @@ class SoldFeedCache:
         return hashlib.sha1(f"{url}::{query}".encode("utf-8")).hexdigest()[:16]
 
     # -- response cache ------------------------------------------------------
-    def get(self, url: str, query: str, cache_days: float) -> list[dict] | None:
-        """Fresh cached items for (url, query), or None if absent/stale."""
+    def get(
+        self,
+        url: str,
+        query: str,
+        cache_days: float,
+        empty_cache_days: float | None = None,
+    ) -> list[dict] | None:
+        """Fresh cached items for (url, query), or None if absent/stale.
+
+        An EMPTY cached result (0 comps) is usually a transient upstream hiccup —
+        the metered feed rate-limiting and returning nothing — not a real "no sales".
+        Caching that for the full `cache_days` locks a live niche out for a month. So an
+        empty entry expires after the much shorter `empty_cache_days` and is re-pulled.
+        """
         entry = self._load(self.cache_path).get(self.key(url, query))
         if not entry:
             return None
         fetched = datetime.fromisoformat(entry["fetched_at"])
         age_days = (self._now() - fetched).total_seconds() / 86400.0
-        if age_days > float(cache_days):
+        ttl = float(cache_days)
+        if not entry.get("items") and empty_cache_days is not None:
+            ttl = float(empty_cache_days)
+        if age_days > ttl:
             return None
         return entry["items"]
 
