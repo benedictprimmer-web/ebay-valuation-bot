@@ -34,6 +34,13 @@ class BudgetExceeded(RuntimeError):
     """Raised when a live pull would exceed the monthly sold-feed budget."""
 
 
+class FeedUnavailable(RuntimeError):
+    """Raised when the sold feed can't be reached (HTTP 429/5xx, timeout, network).
+
+    Callers degrade to 'no fresh comps' and skip, exactly as for BudgetExceeded — a
+    feed hiccup must never crash a read-only run."""
+
+
 class SoldFeedCache:
     """Response cache + monthly pull ledger for a metered HTTP feed.
 

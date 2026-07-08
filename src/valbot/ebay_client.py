@@ -479,6 +479,9 @@ class ThirdPartySource:
         # cold-cache run can't burn the whole month's budget in a burst. Bounded here;
         # skipped models simply fetch on the next run as the cache warms.
         self._run_pulls = 0
+        # Circuit breaker: once the metered feed errors (e.g. 429 rate limit), stop hitting
+        # it for the rest of this run — every later query would just error too.
+        self._feed_down = False
 
     def _auth_for(self, endpoint: dict) -> dict:
         """Auth config for an endpoint, falling back to the provider default (RapidAPI)."""
@@ -527,11 +530,14 @@ class ThirdPartySource:
         ) if (self.cache and cache_days) else None
         if cached is not None:
             return cached
-        if self.cache and cache_days:
+        metered = bool(self.cache and cache_days)
+        if metered:
+            from .cache import BudgetExceeded, FeedUnavailable
+
+            if self._feed_down:  # breaker tripped earlier this run — don't hammer the feed
+                raise FeedUnavailable("sold feed already errored this run; skipping.")
             run_cap = endpoint.get("max_pulls_per_run")
             if run_cap is not None and self._run_pulls >= int(run_cap):
-                from .cache import BudgetExceeded
-
                 raise BudgetExceeded(
                     f"per-run sold-feed pull cap reached ({run_cap}); skipping live "
                     "pull (cached data still served)."
@@ -543,15 +549,26 @@ class ThirdPartySource:
         # `method: POST` in the endpoint config routes here; the field mapping is unchanged.
         payload = {endpoint["query_param"]: query, **endpoint.get("extra_params", {})}
         headers = self._headers_for(endpoint)
-        if (endpoint.get("method") or "GET").upper() == "POST":
-            resp = requests.post(endpoint["url"], headers=headers, json=payload, timeout=30)
-        else:
-            resp = requests.get(endpoint["url"], headers=headers, params=payload, timeout=30)
-        resp.raise_for_status()
-        body = resp.json()
+        try:
+            if (endpoint.get("method") or "GET").upper() == "POST":
+                resp = requests.post(endpoint["url"], headers=headers, json=payload, timeout=30)
+            else:
+                resp = requests.get(endpoint["url"], headers=headers, params=payload, timeout=30)
+            resp.raise_for_status()
+            body = resp.json()
+        except requests.exceptions.RequestException as e:
+            # 429 rate limit / 5xx / timeout / network: a read-only run must never crash on
+            # the feed. Trip the breaker and degrade to "no fresh comps" for this query. Do
+            # NOT record a pull or cache anything — the miss retries on a later run.
+            if metered:
+                self._feed_down = True
+                from .cache import FeedUnavailable
+
+                raise FeedUnavailable(f"sold feed unavailable ({e}); skipping.") from e
+            raise
         items = dig(body, endpoint["items_path"]) if endpoint.get("items_path") else body
         items = items or []
-        if self.cache and cache_days:
+        if metered:
             self.cache.record_pull()
             self._run_pulls += 1
             self.cache.put(endpoint["url"], query, items)

@@ -20,7 +20,7 @@ import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-from .cache import BudgetExceeded
+from .cache import BudgetExceeded, FeedUnavailable
 from .camera import parse_camera
 from .ebay_client import ListingSource
 from .models import Assessment, Card, Listing
@@ -151,8 +151,8 @@ def assess_target(target: TargetInput, source: ListingSource, cfg: dict) -> Targ
     gate/fee/threshold logic as the live pipeline."""
     try:
         comps = source.fetch_comps(target.card)
-    except BudgetExceeded as e:
-        print(f"[budget] {e}", file=sys.stderr)
+    except (BudgetExceeded, FeedUnavailable) as e:
+        print(f"[feed] {e}", file=sys.stderr)
         comps = []  # no fresh comps -> valuation None -> "NO DATA", no crash
     valuation = value_card(target.card, comps, cfg["valuation"])
     # No live price -> price 0.0 so max_bid/confidence still compute; the verdict

@@ -8,7 +8,7 @@ from __future__ import annotations
 import sys
 from dataclasses import dataclass
 
-from .cache import BudgetExceeded
+from .cache import BudgetExceeded, FeedUnavailable
 from .ebay_client import ListingSource
 from .formatting import format_alert
 from .models import Assessment
@@ -30,8 +30,8 @@ def run_pipeline(cfg: dict, source: ListingSource, alerter, store) -> RunResult:
     for target in targets:
         try:
             comps = source.fetch_comps(target.card)
-        except BudgetExceeded as e:
-            print(f"[budget] {e}", file=sys.stderr)
+        except (BudgetExceeded, FeedUnavailable) as e:
+            print(f"[feed] {e}", file=sys.stderr)
             comps = []  # no fresh comps -> valuation None -> target skipped, no crash
         valuation = value_card(target.card, comps, cfg["valuation"])
         assessments.append(assess(target, valuation, cfg))

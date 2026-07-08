@@ -6,7 +6,7 @@ import pytest
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 
-from valbot.cache import BudgetExceeded, SoldFeedCache  # noqa: E402
+from valbot.cache import BudgetExceeded, FeedUnavailable, SoldFeedCache  # noqa: E402
 from valbot.config import apply_sector, load_config  # noqa: E402
 from valbot.ebay_client import ThirdPartySource  # noqa: E402
 
@@ -134,6 +134,38 @@ def test_get_refuses_pull_when_budget_spent(tmp_path, monkeypatch):
 
     with pytest.raises(BudgetExceeded):
         src._get(cfg["thirdparty"]["sold"], "Nikon D610")  # uncached -> would pull
+
+
+def test_feed_429_degrades_and_trips_breaker(tmp_path, monkeypatch):
+    """A 429 (or any HTTP/network error) from the sold feed must NOT crash the run: it
+    raises FeedUnavailable (caller degrades to no comps), records no pull, and trips the
+    per-run breaker so later queries skip the feed instead of hammering it."""
+    import requests
+    src, cfg, cache = _cameras_src(tmp_path, _Clock(T0))
+    endpoint = cfg["thirdparty"]["sold"]
+
+    calls = {"n": 0}
+
+    class _429:
+        def raise_for_status(self):
+            raise requests.exceptions.HTTPError("429 Too Many Requests")
+
+        def json(self):
+            return {}
+
+    def boom(*a, **k):
+        calls["n"] += 1
+        return _429()
+
+    monkeypatch.setattr(requests, "post", boom)
+
+    with pytest.raises(FeedUnavailable):
+        src._get(endpoint, "Nikon D610")       # first miss -> 429 -> FeedUnavailable
+    assert cache.pulls_this_month() == 0        # errored pull is not counted
+    # breaker tripped: a second query short-circuits without another HTTP call
+    with pytest.raises(FeedUnavailable):
+        src._get(endpoint, "Canon 6D")
+    assert calls["n"] == 1                       # only the first query hit the network
 
 
 def test_per_run_pull_cap_bounds_one_run(tmp_path, monkeypatch):
