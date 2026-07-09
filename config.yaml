@@ -212,59 +212,39 @@ sectors:
         category_ids: {body: "31388", lens: "3323"}  # Browse API allows 1 ID per request
                                                       # 31388 Digital Cameras, 3323 Camera Lenses leaf
                                                       # NOT 78997 (Lenses & Filters parent — includes hoods)
+        # TRIMMED 2026-07-09 to the 22 niches that RELIABLY return sold comps (verified
+        # against the live cache). The metered RapidAPI feed rate-limits (429) and left
+        # ~18 niches with empty comps — carrying them just spread a starved budget thin and
+        # produced "no comps" noise. Parked below; restore them once a solid feed (eBay
+        # Marketplace Insights) is wired and the 50/month cap is gone.
         queries:
-          # Tier-down niches: auction prices scattered, BIN ceiling £280-380, fits £250 cap
-          # Ranked by deal frequency + auction scatter (research/niche-cameras-tier-down.md)
-          - "Sony A6000 body"        # £90-200 auction, £320-380 BIN, 40-60 auctions/wk
-          - "Canon EOS 6D body"      # £120-230 auction, £280-340 BIN, 20-35/wk
-          - "Sony A7 II body"        # £160-280 auction, £320-380 BIN, 20-30/wk
-          - "Nikon D610 body"        # £140-240 auction, £280-360 BIN, 15-25/wk (recall stigma)
-          - "Fujifilm X-T30 body"    # £150-280 auction, £320-380 BIN, 15-25/wk
-          # High-liquidity entry/prosumer DSLRs — highest sold-comp counts (big n),
-          # so valuations are the most reliable. All clear well under the £250 cap.
-          - "Canon EOS 600D body"    # £80-160, massive sold volume (entry DSLR)
-          - "Canon EOS 700D body"    # £120-220, very high volume
-          - "Nikon D3200 body"       # £70-140, huge volume
-          - "Nikon D5100 body"       # £90-180, high volume
-          - "Nikon D7000 body"       # £120-220, high volume (prosumer)
-          - "Panasonic Lumix G7 body" # £170-270, 4K draw, decent volume
-          # Added 2026-07 — all resolve to an exact identity (verified). Each new model
-          # costs ≤1 sold-pull/month (30-day cache), so this stays well under the 50 cap.
-          - "Sony A6300 body"        # £150-230, mid A6x00 volume
-          - "Sony A6100 body"        # £200-290, newer sensor, decent volume
-          - "Nikon D5300 body"       # £90-180, huge entry-DSLR volume
-          - "Nikon D5600 body"       # £150-240, high volume
-          - "Nikon D3300 body"       # £70-150, huge volume
-          - "Fujifilm X-T20 body"    # £180-270, strong APS-C demand
-          - "Fujifilm X-E3 body"     # £150-250, rangefinder-style draw
-          - "Canon EOS 250D body"    # £200-290, current entry DSLR, high volume
-          - "Olympus OM-D E-M10 Mark II body"  # £120-200, MFT entry, good volume
-          # Added 2026-07 (batch 2) → 30 niches total, still ≤30 pulls/month vs 50 cap.
-          # First three use the parser fixes for M-series / 2-digit Nikon / Panasonic GX.
-          - "Canon EOS M50 body"     # £250-340, huge vlogger demand
-          - "Nikon D90 body"         # £60-120, legacy but enormous volume
-          - "Panasonic Lumix GX80 body"  # £180-280, IBIS + 4K draw
-          - "Canon EOS 750D body"    # £150-220, high-volume entry DSLR
-          - "Canon EOS 100D body"    # £120-180, smallest DSLR, steady demand
-          - "Nikon D3100 body"       # £70-120, massive entry volume
-          - "Nikon D5200 body"       # £100-160, high volume
-          - "Fujifilm X-T10 body"    # £150-220, APS-C value pick
-          - "Olympus OM-D E-M10 Mark III body"  # £200-300, MFT
-          - "Panasonic Lumix G80 body"  # £200-300, weather-sealed MFT
-          # LENS niches (added 2026-07). First-party only for now — clean single-mount
-          # identity (a Sigma/Tamron 30mm exists in several mounts under one key, which
-          # would over-merge comps; revisit with mount-aware keys). The body-only excludes
-          # above (zoom/kit/with-lens) do NOT apply to these, so zoom lenses keep their comps.
-          - "Canon EF 50mm f1.8 STM"     # nifty fifty — £60-100, enormous volume
-          - "Canon RF 50mm f1.8 STM"     # £140-180, mirrorless nifty fifty
-          - "Canon EF 40mm f2.8 STM"     # pancake — £90-140
-          - "Nikon AF-S 50mm f1.8 G"     # £90-130, high volume
-          - "Nikon AF-S 35mm f1.8 G"     # £110-150, DX standard prime
-          - "Sony FE 50mm f1.8"          # £120-170
-          - "Sony E 35mm f1.8 OSS"       # £200-280, APS-C standard prime
-          - "Fujifilm XF 35mm f2"        # £200-280, weather-resistant prime
-          - "Panasonic Lumix 25mm f1.7"  # £90-140, MFT standard prime
-          - "Canon EF 24-105mm f4 L"     # £200-320, pro standard zoom (data even if over cap)
+          - "Sony A6000 body"
+          - "Canon EOS 6D body"
+          - "Sony A7 II body"
+          - "Nikon D610 body"
+          - "Fujifilm X-T30 body"
+          - "Canon EOS 600D body"
+          - "Canon EOS 700D body"
+          - "Nikon D3200 body"
+          - "Nikon D5100 body"
+          - "Nikon D7000 body"
+          - "Panasonic Lumix G7 body"
+          - "Nikon D5300 body"
+          - "Fujifilm X-T20 body"
+          - "Olympus OM-D E-M10 Mark II body"
+          - "Nikon D90 body"
+          - "Panasonic Lumix GX80 body"
+          - "Fujifilm X-T10 body"
+          - "Panasonic Lumix G80 body"
+          - "Canon EF 50mm f1.8 STM"
+          - "Canon RF 50mm f1.8 STM"
+          - "Nikon AF-S 35mm f1.8 G"
+          - "Fujifilm XF 35mm f2"
+          # PARKED (empty comps under the current feed — re-add when the sold source is solid):
+          #   Sony A6300 / A6100, Nikon D5600 / D3300 / D3100 / D5200, Fujifilm X-E3,
+          #   Canon EOS 250D / M50 / 750D / 100D, Olympus E-M10 Mark III,
+          #   Canon EF 40mm f2.8, Nikon AF-S 50mm f1.8 G, Sony FE 50mm f1.8,
+          #   Sony E 35mm f1.8 OSS, Panasonic 25mm f1.7, Canon EF 24-105mm f4 L
       # SOLD-COMP SOURCE — real UK sold prices via RapidAPI (ADR-011 gap now closed).
       # Provider: "eBay Average Selling Price" (ebay-average-selling-price.p.rapidapi.com,
       # colindaniels/caffeindev). POST /findCompletedItems returns true completed-sale
