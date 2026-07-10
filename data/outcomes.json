@@ -400,5 +400,48 @@
       "reason": "body only",
       "at": "2026-07-05T08:02:12.608648+00:00"
     }
+  },
+  {
+    "logged_at": "2026-07-10T19:23:47.055059+00:00",
+    "listing_id": "v1|178277945829|0",
+    "ref": "7b783a",
+    "url": "https://www.ebay.co.uk/itm/178277945829?_skw=Fujifilm+X-T20+body&hash=item29823191e5:g:2joAAeSwts9qR2p4",
+    "card": "Fujifilm XT20",
+    "current_price": 180.0,
+    "ends_at": "2026-07-12T19:23:00.000Z",
+    "prediction": {
+      "max_bid": 240.42,
+      "point_value": 389.99,
+      "conservative_value": 347.5,
+      "expected_profit": 125.39,
+      "margin": 0.3608,
+      "confidence": 0.782,
+      "n_comps": 37,
+      "rel_dispersion": 0.109,
+      "ratio_used": 1.0
+    },
+    "fees": {
+      "sell_fvf": 24.38,
+      "sell_regulatory": 1.22,
+      "sell_vat_on_fees": 5.12,
+      "sell_total": 30.71,
+      "buyer_protection": 7.9,
+      "postage_in": 0.0,
+      "postage_out": 3.5,
+      "required_profit": 62.55
+    },
+    "human_verdict": {
+      "verdict": null,
+      "fair_value": null,
+      "reason": null,
+      "at": null
+    },
+    "result": {
+      "won": null,
+      "final_price": null,
+      "resold_price": null,
+      "realised_profit": null,
+      "notes": null
+    }
   }
 ]
