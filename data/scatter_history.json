@@ -2428,5 +2428,267 @@
         "source": "cache"
       }
     ]
+  },
+  {
+    "scanned_at": "2026-07-11T08:17:11.319268+00:00",
+    "sector": "cameras-lenses",
+    "rows": [
+      {
+        "query": "Canon EF 50mm f1.8 STM",
+        "source": "cache",
+        "n": 48,
+        "median": 53.39,
+        "min": 32.72,
+        "max": 89.99,
+        "rel_dispersion": 0.211,
+        "edge_gbp": 20.67,
+        "edge_pct": 0.387,
+        "score": 1.461
+      },
+      {
+        "query": "Nikon D90 body",
+        "source": "cache",
+        "n": 25,
+        "median": 103.92,
+        "min": 46.0,
+        "max": 258.92,
+        "rel_dispersion": 0.274,
+        "edge_gbp": 57.92,
+        "edge_pct": 0.557,
+        "score": 1.368
+      },
+      {
+        "query": "Nikon D3200 body",
+        "source": "cache",
+        "n": 14,
+        "median": 129.0,
+        "min": 56.0,
+        "max": 235.0,
+        "rel_dispersion": 0.34,
+        "edge_gbp": 73.0,
+        "edge_pct": 0.566,
+        "score": 1.271
+      },
+      {
+        "query": "Panasonic Lumix G7 body",
+        "source": "cache",
+        "n": 24,
+        "median": 216.28,
+        "min": 100.0,
+        "max": 350.0,
+        "rel_dispersion": 0.24,
+        "edge_gbp": 116.28,
+        "edge_pct": 0.538,
+        "score": 1.177
+      },
+      {
+        "query": "Nikon D5100 body",
+        "source": "cache",
+        "n": 9,
+        "median": 129.99,
+        "min": 59.0,
+        "max": 248.58,
+        "rel_dispersion": 0.389,
+        "edge_gbp": 70.99,
+        "edge_pct": 0.546,
+        "score": 1.166
+      },
+      {
+        "query": "Nikon D610 body",
+        "source": "cache",
+        "n": 45,
+        "median": 256.17,
+        "min": 103.35,
+        "max": 419.99,
+        "rel_dispersion": 0.171,
+        "edge_gbp": 152.82,
+        "edge_pct": 0.597,
+        "score": 1.147
+      },
+      {
+        "query": "Fujifilm XF 35mm f2",
+        "source": "cache",
+        "n": 37,
+        "median": 207.25,
+        "min": 93.58,
+        "max": 310.58,
+        "rel_dispersion": 0.156,
+        "edge_gbp": 113.67,
+        "edge_pct": 0.548,
+        "score": 0.948
+      },
+      {
+        "query": "Nikon AF-S 35mm f1.8 G",
+        "source": "cache",
+        "n": 43,
+        "median": 87.4,
+        "min": 59.0,
+        "max": 305.84,
+        "rel_dispersion": 0.133,
+        "edge_gbp": 28.4,
+        "edge_pct": 0.325,
+        "score": 0.87
+      },
+      {
+        "query": "Canon EOS 6D body",
+        "source": "cache",
+        "n": 22,
+        "median": 217.98,
+        "min": 116.21,
+        "max": 460.0,
+        "rel_dispersion": 0.176,
+        "edge_gbp": 101.77,
+        "edge_pct": 0.467,
+        "score": 0.826
+      },
+      {
+        "query": "Canon EOS 700D body",
+        "source": "cache",
+        "n": 11,
+        "median": 145.64,
+        "min": 16.99,
+        "max": 200.98,
+        "rel_dispersion": 0.246,
+        "edge_gbp": 128.65,
+        "edge_pct": 0.883,
+        "score": 0.815
+      },
+      {
+        "query": "Fujifilm X-T20 body",
+        "source": "cache",
+        "n": 37,
+        "median": 389.99,
+        "min": 269.25,
+        "max": 791.3,
+        "rel_dispersion": 0.109,
+        "edge_gbp": 120.74,
+        "edge_pct": 0.31,
+        "score": 0.663
+      },
+      {
+        "query": "Panasonic Lumix GX80 body",
+        "source": "cache",
+        "n": 32,
+        "median": 332.91,
+        "min": 1.13,
+        "max": 508.79,
+        "rel_dispersion": 0.109,
+        "edge_gbp": 331.78,
+        "edge_pct": 0.997,
+        "score": 0.618
+      },
+      {
+        "query": "Canon EOS 600D body",
+        "source": "cache",
+        "n": 8,
+        "median": 103.2,
+        "min": 44.6,
+        "max": 155.58,
+        "rel_dispersion": 0.207,
+        "edge_gbp": 58.6,
+        "edge_pct": 0.568,
+        "score": 0.585
+      },
+      {
+        "query": "Nikon D7000 body",
+        "source": "cache",
+        "n": 28,
+        "median": 145.25,
+        "min": 89.0,
+        "max": 258.92,
+        "rel_dispersion": 0.109,
+        "edge_gbp": 56.25,
+        "edge_pct": 0.387,
+        "score": 0.577
+      },
+      {
+        "query": "Olympus OM-D E-M10 Mark II body",
+        "source": "cache",
+        "n": 22,
+        "median": 223.46,
+        "min": 15.95,
+        "max": 432.25,
+        "rel_dispersion": 0.114,
+        "edge_gbp": 207.51,
+        "edge_pct": 0.929,
+        "score": 0.535
+      },
+      {
+        "query": "Fujifilm X-T30 body",
+        "source": "cache",
+        "n": 13,
+        "median": 428.91,
+        "min": 361.42,
+        "max": 558.96,
+        "rel_dispersion": 0.119,
+        "edge_gbp": 67.49,
+        "edge_pct": 0.157,
+        "score": 0.431
+      },
+      {
+        "query": "Sony A7 II body",
+        "source": "cache",
+        "n": 14,
+        "median": 322.88,
+        "min": 166.02,
+        "max": 439.99,
+        "rel_dispersion": 0.09,
+        "edge_gbp": 156.85,
+        "edge_pct": 0.486,
+        "score": 0.335
+      },
+      {
+        "query": "Nikon D5300 body",
+        "source": "cache",
+        "n": 9,
+        "median": 149.99,
+        "min": 127.22,
+        "max": 199.99,
+        "rel_dispersion": 0.089,
+        "edge_gbp": 22.77,
+        "edge_pct": 0.152,
+        "score": 0.268
+      },
+      {
+        "query": "Panasonic Lumix G80 body",
+        "source": "cache",
+        "n": 2,
+        "median": 173.8,
+        "min": 149.99,
+        "max": 197.61,
+        "rel_dispersion": 0.137,
+        "edge_gbp": 23.81,
+        "edge_pct": 0.137,
+        "score": 0.194
+      },
+      {
+        "query": "Canon RF 50mm f1.8 STM",
+        "source": "cache",
+        "n": 9,
+        "median": 139.99,
+        "min": 128.72,
+        "max": 186.58,
+        "rel_dispersion": 0.047,
+        "edge_gbp": 11.27,
+        "edge_pct": 0.081,
+        "score": 0.14
+      },
+      {
+        "query": "Sony A6000 body",
+        "source": "cache",
+        "n": 14,
+        "median": 293.0,
+        "min": 214.0,
+        "max": 419.95,
+        "rel_dispersion": 0.037,
+        "edge_gbp": 79.0,
+        "edge_pct": 0.27,
+        "score": 0.137
+      },
+      {
+        "query": "Fujifilm X-T10 body",
+        "source": "cache"
+      }
+    ]
   }
 ]
