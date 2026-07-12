@@ -443,5 +443,48 @@
       "realised_profit": null,
       "notes": null
     }
+  },
+  {
+    "logged_at": "2026-07-12T11:08:18.169441+00:00",
+    "listing_id": "v1|278173530037|0",
+    "ref": "00903a",
+    "url": "https://www.ebay.co.uk/itm/278173530037?_skw=Sony+A6000+body&hash=item40c46f37b5:g:sAsAAeSwSKRqUhWh",
+    "card": "Sony A6000",
+    "current_price": 183.0,
+    "ends_at": "2026-07-14T10:11:26.000Z",
+    "prediction": {
+      "max_bid": 190.34,
+      "point_value": 293.0,
+      "conservative_value": 282.26,
+      "expected_profit": 58.45,
+      "margin": 0.2071,
+      "confidence": 0.865,
+      "n_comps": 14,
+      "rel_dispersion": 0.0366,
+      "ratio_used": 1.0
+    },
+    "fees": {
+      "sell_fvf": 19.88,
+      "sell_regulatory": 0.99,
+      "sell_vat_on_fees": 4.17,
+      "sell_total": 25.04,
+      "buyer_protection": 8.02,
+      "postage_in": 4.26,
+      "postage_out": 3.5,
+      "required_profit": 50.81
+    },
+    "human_verdict": {
+      "verdict": null,
+      "fair_value": null,
+      "reason": null,
+      "at": null
+    },
+    "result": {
+      "won": null,
+      "final_price": null,
+      "resold_price": null,
+      "realised_profit": null,
+      "notes": null
+    }
   }
 ]
