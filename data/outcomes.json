@@ -486,5 +486,48 @@
       "realised_profit": null,
       "notes": null
     }
+  },
+  {
+    "logged_at": "2026-07-13T06:51:07.171806+00:00",
+    "listing_id": "v1|335740795577|0",
+    "ref": "357c9f",
+    "url": "https://www.ebay.co.uk/itm/335740795577?_skw=Sony+A7+II+body&hash=item4e2bb5fab9:g:zzoAAOSwe91nZsC8",
+    "card": "Sony A7 2",
+    "current_price": 90.84,
+    "ends_at": null,
+    "prediction": {
+      "max_bid": 193.93,
+      "point_value": 322.88,
+      "conservative_value": 293.95,
+      "expected_profit": 160.12,
+      "margin": 0.5447,
+      "confidence": 0.766,
+      "n_comps": 14,
+      "rel_dispersion": 0.0896,
+      "ratio_used": 1.0
+    },
+    "fees": {
+      "sell_fvf": 20.68,
+      "sell_regulatory": 1.03,
+      "sell_vat_on_fees": 4.34,
+      "sell_total": 26.05,
+      "buyer_protection": 4.33,
+      "postage_in": 9.1,
+      "postage_out": 3.5,
+      "required_profit": 52.91
+    },
+    "human_verdict": {
+      "verdict": null,
+      "fair_value": null,
+      "reason": null,
+      "at": null
+    },
+    "result": {
+      "won": null,
+      "final_price": null,
+      "resold_price": null,
+      "realised_profit": null,
+      "notes": null
+    }
   }
 ]
