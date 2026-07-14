@@ -529,5 +529,48 @@
       "realised_profit": null,
       "notes": null
     }
+  },
+  {
+    "logged_at": "2026-07-14T22:55:18.597981+00:00",
+    "listing_id": "v1|178299692878|0",
+    "ref": "dd0256",
+    "url": "https://www.ebay.co.uk/itm/178299692878?_skw=Nikon+AF-S+35mm+f1.8+G&hash=item29837d674e:g:-psAAeSwD-BqULzM",
+    "card": "Nikon 35mm f1.8",
+    "current_price": 26.0,
+    "ends_at": "2026-07-16T21:17:00.000Z",
+    "prediction": {
+      "max_bid": 48.93,
+      "point_value": 87.4,
+      "conservative_value": 75.8,
+      "expected_profit": 37.49,
+      "margin": 0.4946,
+      "confidence": 0.735,
+      "n_comps": 43,
+      "rel_dispersion": 0.1327,
+      "ratio_used": 1.0
+    },
+    "fees": {
+      "sell_fvf": 5.63,
+      "sell_regulatory": 0.27,
+      "sell_vat_on_fees": 1.18,
+      "sell_total": 7.07,
+      "buyer_protection": 1.74,
+      "postage_in": 0.0,
+      "postage_out": 3.5,
+      "required_profit": 13.64
+    },
+    "human_verdict": {
+      "verdict": null,
+      "fair_value": null,
+      "reason": null,
+      "at": null
+    },
+    "result": {
+      "won": null,
+      "final_price": null,
+      "resold_price": null,
+      "realised_profit": null,
+      "notes": null
+    }
   }
 ]
