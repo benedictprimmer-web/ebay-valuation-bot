@@ -615,5 +615,48 @@
       "realised_profit": null,
       "notes": null
     }
+  },
+  {
+    "logged_at": "2026-07-20T10:49:21.717752+00:00",
+    "listing_id": "v1|178299667402|0",
+    "ref": "fe5399",
+    "url": "https://www.ebay.co.uk/itm/178299667402?_skw=Nikon+D610+body&hash=item29837d03ca:g:uy4AAeSwlcJqULsq",
+    "card": "Nikon D610",
+    "current_price": 83.0,
+    "ends_at": "2026-07-20T19:42:00.000Z",
+    "prediction": {
+      "max_bid": 145.17,
+      "point_value": 256.17,
+      "conservative_value": 212.35,
+      "expected_profit": 102.88,
+      "margin": 0.4845,
+      "confidence": 0.658,
+      "n_comps": 45,
+      "rel_dispersion": 0.1711,
+      "ratio_used": 1.0
+    },
+    "fees": {
+      "sell_fvf": 15.05,
+      "sell_regulatory": 0.74,
+      "sell_vat_on_fees": 3.16,
+      "sell_total": 18.95,
+      "buyer_protection": 4.02,
+      "postage_in": 0.0,
+      "postage_out": 3.5,
+      "required_profit": 38.22
+    },
+    "human_verdict": {
+      "verdict": null,
+      "fair_value": null,
+      "reason": null,
+      "at": null
+    },
+    "result": {
+      "won": null,
+      "final_price": null,
+      "resold_price": null,
+      "realised_profit": null,
+      "notes": null
+    }
   }
 ]
