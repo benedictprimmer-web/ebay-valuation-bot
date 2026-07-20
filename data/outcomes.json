@@ -658,5 +658,48 @@
       "realised_profit": null,
       "notes": null
     }
+  },
+  {
+    "logged_at": "2026-07-20T15:57:26.043363+00:00",
+    "listing_id": "v1|307075221335|0",
+    "ref": "e3b2b1",
+    "url": "https://www.ebay.co.uk/itm/307075221335?_skw=Canon+RF+50mm+f1.8+STM&hash=item477f1c0757:g:reAAAeSwZl5qXi5g",
+    "card": "Canon RF 50mm f1.8",
+    "current_price": 78.7,
+    "ends_at": "2026-07-25T14:24:39.000Z",
+    "prediction": {
+      "max_bid": 86.75,
+      "point_value": 139.99,
+      "conservative_value": 133.48,
+      "expected_profit": 32.4,
+      "margin": 0.2427,
+      "confidence": 0.544,
+      "n_comps": 9,
+      "rel_dispersion": 0.0465,
+      "ratio_used": 1.0
+    },
+    "fees": {
+      "sell_fvf": 9.61,
+      "sell_regulatory": 0.47,
+      "sell_vat_on_fees": 2.02,
+      "sell_total": 12.09,
+      "buyer_protection": 3.85,
+      "postage_in": 2.94,
+      "postage_out": 3.5,
+      "required_profit": 24.03
+    },
+    "human_verdict": {
+      "verdict": null,
+      "fair_value": null,
+      "reason": null,
+      "at": null
+    },
+    "result": {
+      "won": null,
+      "final_price": null,
+      "resold_price": null,
+      "realised_profit": null,
+      "notes": null
+    }
   }
 ]
