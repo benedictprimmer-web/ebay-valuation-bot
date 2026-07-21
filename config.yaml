@@ -186,8 +186,15 @@ sectors:
         price_cap: 250.0 # learning mode: lower risk, more volume; raise once niches confirmed
         # Narrowed margins (learning mode): accept thinner-but-real deals so more flows
         # through and the dataset actually builds. Tighten from outcomes once we have data.
-        profit_floor: 12.0 # was 20 — lower bar to surface more candidates
-        margin_floor: 0.18 # was 0.25 (base default) — demand less headroom while learning
+        # 2026-07-21: lowered again (12->8, 0.18->0.10) after simulating against 78k logged
+        # observations. Data showed price_cap and the gate (min_comps/max_rel_dispersion)
+        # are NOT binding — 0 extra alerts from loosening either. These two floors ARE
+        # binding: simulated alert-events rose ~162->~174, entirely within the 6 niches
+        # that already alert (Sony A7 II, Nikon 35mm f1.8, Sony A6000, Fuji X-T20,
+        # Nikon D5300, D610). The other 16 niches never clear a profitable bid at any
+        # floor tested — that's a coverage/economics problem, not a threshold problem.
+        profit_floor: 8.0 # was 12 (was 20 originally) — lower bar to surface more candidates
+        margin_floor: 0.10 # was 0.18 (was 0.25 base default) — demand less headroom while learning
       search:
         # Auctions ending within this window are surfaced; a Buy-It-Now listing is
         # snap-buyable ANY time, so the window doesn't gate it (see _fetch_camera_targets).
