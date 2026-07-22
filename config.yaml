@@ -224,6 +224,11 @@ sectors:
         # ~18 niches with empty comps — carrying them just spread a starved budget thin and
         # produced "no comps" noise. Parked below; restore them once a solid feed (eBay
         # Marketplace Insights) is wired and the 50/month cap is gone.
+        # DROPPED 2026-07-22: X-T10 and G80 both still return raw sold data (cache has 60
+        # and 60 raw items respectively), but exclude_conditions/exclude_title_keywords in
+        # the thirdparty.sold block below strip them to ~0 and ~2 usable comps — comp
+        # cleaning, not feed rate-limiting, kills these two. Never alerted in their time
+        # on the list. Cut rather than left to burn cache-refresh pulls for nothing.
         queries:
           - "Sony A6000 body"
           - "Canon EOS 6D body"
@@ -241,12 +246,12 @@ sectors:
           - "Olympus OM-D E-M10 Mark II body"
           - "Nikon D90 body"
           - "Panasonic Lumix GX80 body"
-          - "Fujifilm X-T10 body"
-          - "Panasonic Lumix G80 body"
           - "Canon EF 50mm f1.8 STM"
           - "Canon RF 50mm f1.8 STM"
           - "Nikon AF-S 35mm f1.8 G"
           - "Fujifilm XF 35mm f2"
+          # DROPPED 2026-07-22 (comp cleaning strips them to near-zero usable comps, see
+          # note above): "Fujifilm X-T10 body", "Panasonic Lumix G80 body"
           # PARKED (empty comps under the current feed — re-add when the sold source is solid):
           #   Sony A6300 / A6100, Nikon D5600 / D3300 / D3100 / D5200, Fujifilm X-E3,
           #   Canon EOS 250D / M50 / 750D / 100D, Olympus E-M10 Mark III,
