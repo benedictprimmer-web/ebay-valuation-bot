@@ -63,6 +63,7 @@ class Listing:
     seller_feedback_pct: Optional[float] = None  # seller positive-feedback %, 0..100
     seller_feedback_score: Optional[int] = None  # seller feedback count
     shutter_count: Optional[int] = None  # actuations if the title states them; None = unknown
+    title: Optional[str] = None  # raw listing title, for later analysis (e.g. listing quality)
 
     def matches(self, card: Card) -> bool:
         return self.card.key() == card.key()

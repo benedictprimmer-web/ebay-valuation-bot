@@ -60,6 +60,7 @@ class Store:
                     "ts": ts,
                     "listing_id": a.listing.listing_id,
                     "model": v.card.label() if v else a.listing.card.label(),
+                    "title": a.listing.title,
                     "current_price": a.listing.price,
                     "bin_price": a.listing.bin_price,
                     "condition": a.listing.condition,

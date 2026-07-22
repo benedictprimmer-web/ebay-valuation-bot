@@ -238,4 +238,5 @@ def camera_listing_from_title(
         seller_feedback_pct=seller_feedback_pct,
         seller_feedback_score=seller_feedback_score,
         shutter_count=parse_shutter_count(title),
+        title=title,
     )
