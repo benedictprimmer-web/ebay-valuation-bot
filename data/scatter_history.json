@@ -22132,5 +22132,155 @@
         "source": "error: FeedUnavailable"
       }
     ]
+  },
+  {
+    "scanned_at": "2026-10-07T13:38:27.265525+00:00",
+    "sector": "cameras-lenses",
+    "rows": [
+      {
+        "query": "Canon EOS 600D body",
+        "source": "cache",
+        "n": 8,
+        "median": 92.04,
+        "min": 4.85,
+        "max": 126.95,
+        "rel_dispersion": 0.343,
+        "edge_gbp": 87.19,
+        "edge_pct": 0.947,
+        "score": 0.971
+      },
+      {
+        "query": "Canon EOS 700D body",
+        "source": "fresh pull",
+        "n": 7,
+        "median": 156.65,
+        "min": 16.15,
+        "max": 224.3,
+        "rel_dispersion": 0.332,
+        "edge_gbp": 140.5,
+        "edge_pct": 0.897,
+        "score": 0.879
+      },
+      {
+        "query": "Nikon D610 body",
+        "source": "cache",
+        "n": 6,
+        "median": 232.4,
+        "min": 20.58,
+        "max": 366.07,
+        "rel_dispersion": 0.247,
+        "edge_gbp": 211.82,
+        "edge_pct": 0.911,
+        "score": 0.605
+      },
+      {
+        "query": "Sony A7 II body",
+        "source": "cache",
+        "n": 10,
+        "median": 332.5,
+        "min": 167.1,
+        "max": 760.0,
+        "rel_dispersion": 0.178,
+        "edge_gbp": 165.4,
+        "edge_pct": 0.497,
+        "score": 0.563
+      },
+      {
+        "query": "Sony A6000 body",
+        "source": "cache",
+        "n": 4,
+        "median": 238.94,
+        "min": 217.0,
+        "max": 286.0,
+        "rel_dispersion": 0.048,
+        "edge_gbp": 21.94,
+        "edge_pct": 0.092,
+        "score": 0.096
+      },
+      {
+        "query": "Canon EOS 6D body",
+        "source": "cache",
+        "n": 3,
+        "median": 255.38,
+        "min": 249.99,
+        "max": 260.7,
+        "rel_dispersion": 0.021,
+        "edge_gbp": 5.39,
+        "edge_pct": 0.021,
+        "score": 0.036
+      },
+      {
+        "query": "Fujifilm X-T30 body",
+        "source": "cache",
+        "n": 1,
+        "median": 453.04,
+        "min": 453.04,
+        "max": 453.04,
+        "rel_dispersion": 0.0,
+        "edge_gbp": 0.0,
+        "edge_pct": 0.0,
+        "score": 0.0
+      },
+      {
+        "query": "Nikon D3200 body",
+        "source": "error: FeedUnavailable"
+      },
+      {
+        "query": "Nikon D5100 body",
+        "source": "error: FeedUnavailable"
+      },
+      {
+        "query": "Nikon D7000 body",
+        "source": "error: FeedUnavailable"
+      },
+      {
+        "query": "Panasonic Lumix G7 body",
+        "source": "error: FeedUnavailable"
+      },
+      {
+        "query": "Nikon D5300 body",
+        "source": "error: FeedUnavailable"
+      },
+      {
+        "query": "Fujifilm X-T20 body",
+        "source": "error: FeedUnavailable"
+      },
+      {
+        "query": "Olympus OM-D E-M10 Mark II body",
+        "source": "error: FeedUnavailable"
+      },
+      {
+        "query": "Nikon D90 body",
+        "source": "error: FeedUnavailable"
+      },
+      {
+        "query": "Panasonic Lumix GX80 body",
+        "source": "error: FeedUnavailable"
+      },
+      {
+        "query": "Fujifilm X-T10 body",
+        "source": "error: FeedUnavailable"
+      },
+      {
+        "query": "Panasonic Lumix G80 body",
+        "source": "error: FeedUnavailable"
+      },
+      {
+        "query": "Canon EF 50mm f1.8 STM",
+        "source": "error: FeedUnavailable"
+      },
+      {
+        "query": "Canon RF 50mm f1.8 STM",
+        "source": "error: FeedUnavailable"
+      },
+      {
+        "query": "Nikon AF-S 35mm f1.8 G",
+        "source": "error: FeedUnavailable"
+      },
+      {
+        "query": "Fujifilm XF 35mm f2",
+        "source": "error: FeedUnavailable"
+      }
+    ]
   }
 ]
